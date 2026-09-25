@@ -1,0 +1,18 @@
+
+[2026-09-25 12:53:21] session_destroy(): Trying to destroy uninitialized session in /var/www/app/middleware/auth.php:107
+[2026-09-25 12:53:49] [PDOException] SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`radha_rani`.`bills`, CONSTRAINT `fk_bills_branch` FOREIGN KEY (`branch_id`) REFERENCES `branches` (`id`) ON DELETE CASCADE) in C:\xampp\htdocs\radha_rani\app\helpers\Database.php:48
+#0 C:\xampp\htdocs\radha_rani\app\helpers\Database.php(48): PDOStatement->execute(Array)
+#1 C:\xampp\htdocs\radha_rani\app\helpers\Database.php(65): Database::query('INSERT INTO bil...', Array)
+#2 C:\xampp\htdocs\radha_rani\app\models\Bill.php(29): Database::execute('INSERT INTO bil...', Array)
+#3 C:\Users\Admin\AppData\Local\Temp\opencode\rr_make_test_bill.php(20): Bill::create(Array)
+#4 {main}
+[2026-09-25 13:06:52] [PDOException] SQLSTATE[HY093]: Invalid parameter number in C:\xampp\htdocs\radha_rani\app\helpers\Database.php:88
+#0 C:\xampp\htdocs\radha_rani\app\helpers\Database.php(88): PDOStatement->execute()
+#1 C:\xampp\htdocs\radha_rani\app\models\Bill.php(29): Database::execute('INSERT INTO bil...', Array, Array)
+#2 C:\Users\Admin\AppData\Local\Temp\opencode\rr_storage_test.php(35): Bill::create(Array)
+#3 {main}
+[2026-09-25 13:13:44] [PDOException] SQLSTATE[HY093]: Invalid parameter number in C:\xampp\htdocs\radha_rani\app\helpers\Database.php:100
+#0 C:\xampp\htdocs\radha_rani\app\helpers\Database.php(100): PDOStatement->execute()
+#1 C:\xampp\htdocs\radha_rani\app\models\Bill.php(29): Database::execute('INSERT INTO bil...', Array, Array)
+#2 C:\Users\Admin\AppData\Local\Temp\opencode\rr_storage_test.php(35): Bill::create(Array)
+#3 {main}

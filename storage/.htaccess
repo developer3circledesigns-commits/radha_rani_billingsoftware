@@ -1,0 +1,26 @@
+# Radha Rani Hotel Portal - storage lockdown
+#
+# Placed INSIDE storage/ so these rules apply only to uploaded files and
+# logs, never to the application's own PHP pages.
+#
+# Nothing in here should ever be reachable over HTTP or executable:
+# bills are served by download.php / view_pdf.php through PHP, which reads
+# the file from disk (or from the database safety copy) and streams it.
+
+# Deny everything by default.
+Require all denied
+
+# Belt and braces: never execute a script that somehow lands here.
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .pht .cgi .pl .py .sh
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .php8 .pht .cgi .pl .py .sh
+
+# NOTE: "Options -Indexes" is omitted on purpose - it needs
+# "AllowOverride Options" and would error on a locked-down host.
+# "Require all denied" above already blocks everything here.

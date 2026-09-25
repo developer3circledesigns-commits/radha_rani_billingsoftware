@@ -1,0 +1,53 @@
+# Radha Rani Hotel Portal - project-root guard
+#
+# WHY THIS FILE EXISTS
+# The recommended layout puts public_html beside this folder, so Apache never
+# reads this file. But if the whole project is uploaded FLAT (everything
+# inside public_html/), then app/, storage/, tools/, database/, docker/, db/ and
+# vendor/ are all inside the web root and this file is what keeps them private.
+#
+# It is a near-duplicate of public/.htaccess on purpose: that one protects the
+# split layout, this one protects the flat layout. Both are safe to keep.
+#
+# NOTE: no "php_value" here on purpose. It requires mod_php and returns HTTP
+# 500 on LiteSpeed / PHP-FPM, which is what shared hosts run. PHP limits live
+# in public/.user.ini.
+
+# Never serve dotfiles.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Block application directories. The optional leading group makes these work
+# whether the app is at the domain root or inside a sub-directory.
+RedirectMatch 403 ^/(.*/)?(app|tools|database|docker|db|vendor)(/|$)
+
+# Block storage outright.
+RedirectMatch 403 ^/(.*/)?storage(/|$)
+
+# Block sensitive file types.
+<FilesMatch "\.(sql|ini|log|md|json|sh|yml|yaml|bak|old|orig|save|swp|tar|gz|zip)$">
+    Require all denied
+</FilesMatch>
+
+# Do not advertise the server version.
+<IfModule mod_headers.c>
+    Header always unset X-Powered-By
+    Header always unset Server
+</IfModule>
+
+ServerSignature Off
+
+# Security headers. SAMEORIGIN (not DENY) because the PDF preview is a
+# same-origin iframe.
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Header always set X-Permitted-Cross-Domain-Policies "none"
+</IfModule>
+
+# NOTE: "Options -Indexes" and "ServerTokens" are deliberately omitted.
+# They need AllowOverride Options / server-config respectively and would
+# otherwise raise a 500 on a locked-down host.

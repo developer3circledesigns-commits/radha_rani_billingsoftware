@@ -1,0 +1,105 @@
+# Radha Rani Hotel Portal - Apache / LiteSpeed hardening
+# Shared-hosting friendly: no mod_rewrite required, no mod_php required.
+#
+# Layout note: on shared hosting this file is the document root's .htaccess,
+# so app/, storage/, tools/, database/, docker/ and vendor/ all sit INSIDE the
+# web root and must be denied explicitly (see "Block application directories").
+
+# ------------------------------------------------------------------
+# Never serve dotfiles (.env, .git, .user.ini contents, .htaccess, ...)
+# ------------------------------------------------------------------
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# ------------------------------------------------------------------
+# Block application directories from the web.
+# The optional leading group makes these rules work whether the app is
+# installed at the domain root or inside a sub-directory.
+# ------------------------------------------------------------------
+RedirectMatch 403 ^/(.*/)?(app|tools|database|docker|db|vendor)(/|$)
+
+# ------------------------------------------------------------------
+# Block sensitive file types anywhere
+# sql / ini / log / md / json / sh / yml / lock / xml-cve style backups
+# ------------------------------------------------------------------
+<FilesMatch "\.(sql|ini|log|md|json|sh|yml|yaml|bak|old|orig|save|swp|tar|gz|zip)$">
+    Require all denied
+</FilesMatch>
+
+# ------------------------------------------------------------------
+# Do not advertise the Apache version.
+# ServerSignature is .htaccess-legal; ServerTokens is server-config only,
+# so it is intentionally NOT set here (hPanel/host handles it).
+# ------------------------------------------------------------------
+<IfModule mod_headers.c>
+    Header always unset X-Powered-By
+    Header always unset Server
+</IfModule>
+
+ServerSignature Off
+
+# NOTE: "Options -Indexes -ExecCGI" is deliberately omitted. It is only
+# honoured when the host grants "AllowOverride Options"; on a locked-down
+# shared host it raises "Options not allowed here" and takes the site down.
+# Every application directory is already denied above, which is what matters.
+
+# ------------------------------------------------------------------
+# Storage: deny everything.
+# NOTE: no <Directory> block here on purpose - that directive is only
+# allowed in server/virtual-host config and would cause a 500 in .htaccess.
+# The "no script execution" rules live in storage/.htaccess so they apply
+# ONLY inside storage. Never block *.php here: the whole app is PHP.
+# ------------------------------------------------------------------
+RedirectMatch 403 ^/(.*/)?storage(/|$)
+
+# ------------------------------------------------------------------
+# Security headers
+# SAMEORIGIN (not DENY) because the PDF preview is a same-origin iframe.
+# ------------------------------------------------------------------
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Header always set Cross-Origin-Opener-Policy "same-origin"
+    # Do not let the site be framed by third parties for clickjacking,
+    # and do not leak the full path in referrers.
+    Header always set X-Permitted-Cross-Domain-Policies "none"
+</IfModule>
+
+# ------------------------------------------------------------------
+# Static asset caching (assets/ is versioned by mtime, not by query string)
+# ------------------------------------------------------------------
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css                 "access plus 7 days"
+    ExpiresByType application/javascript   "access plus 7 days"
+    ExpiresByType image/png                "access plus 30 days"
+    ExpiresByType image/jpeg               "access plus 30 days"
+    ExpiresByType image/gif                "access plus 30 days"
+    ExpiresByType image/svg+xml            "access plus 30 days"
+    ExpiresByType image/webp               "access plus 30 days"
+    ExpiresByType font/woff                "access plus 1 year"
+    ExpiresByType font/woff2               "access plus 1 year"
+    ExpiresByType application/pdf          "access plus 0 seconds"
+</IfModule>
+
+# ------------------------------------------------------------------
+# Compression (safe for text types only)
+# AddOutputFilterByType is provided by mod_filter, NOT mod_deflate, so both
+# modules must be present or this block has to be skipped entirely -
+# otherwise Apache returns 500 for every request in this directory.
+# ------------------------------------------------------------------
+<IfModule mod_filter.c>
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml
+    AddOutputFilterByType DEFLATE application/javascript application/json
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+</IfModule>
+
+# ------------------------------------------------------------------
+# Optional: pretty URLs are NOT used (every route is a real .php file),
+# so no rewrite rules are needed here.
+# ------------------------------------------------------------------
