@@ -401,10 +401,10 @@ if (isPost()) {
             <li><i class="bi bi-check2"></i>Cash &amp; card billing captured daily</li>
             <li><i class="bi bi-check2"></i>Audit trail on every sign-in and upload</li>
         </ul>
-        <figure class="l1-quote">
+        <!-- <figure class="l1-quote">
             <blockquote>"One place for the whole hotel ledger — no more chasing branch emails."</blockquote>
             <figcaption>Operations Desk · Radha Rani Hotel</figcaption>
-        </figure>
+        </figure> -->
     </div>
 
     <div class="l1-stats">
