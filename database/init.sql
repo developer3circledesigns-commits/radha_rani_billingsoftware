@@ -1,5 +1,10 @@
 -- Radha Rani Hotel Portal - Database Schema + Seed
 -- Combined init run by MySQL on first container start.
+--
+-- DATETIME is used for every timestamp column rather than TIMESTAMP: it has
+-- no 1970-2038 range limit and does not change behaviour with
+-- explicit_defaults_for_timestamp. Some phpMyAdmin builds also mis-parse the
+-- TIMESTAMP keyword, which breaks the import on shared hosting.
 
 -- -----------------------------------------------------------
 -- Table: branches
@@ -12,9 +17,9 @@ CREATE TABLE IF NOT EXISTS branches (
     phone VARCHAR(30) NULL,
     email VARCHAR(190) NULL,
     status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uq_branch_code (branch_code),
     KEY idx_status (status)
@@ -32,10 +37,10 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('owner', 'branch_admin') NOT NULL DEFAULT 'branch_admin',
     status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
-    last_login_at TIMESTAMP NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP NULL,
+    last_login_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uq_email (email),
     UNIQUE KEY uq_username (username),
@@ -65,9 +70,9 @@ CREATE TABLE IF NOT EXISTS bills (
     pdf_bytes LONGBLOB NULL,
     pdf_hash CHAR(64) NULL,
     status ENUM('active', 'deleted') NOT NULL DEFAULT 'active',
-    uploaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at TIMETIME NULL,
+    uploaded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL,
     purge_after DATETIME NULL,
     PRIMARY KEY (id),
     KEY idx_branch_id (branch_id),
@@ -95,7 +100,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     description TEXT NULL,
     ip_address VARCHAR(45) NULL,
     user_agent VARCHAR(500) NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_user_id (user_id),
     KEY idx_branch_id (branch_id),
@@ -110,7 +115,7 @@ CREATE TABLE IF NOT EXISTS settings (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     setting_key VARCHAR(100) NOT NULL,
     setting_value TEXT NULL,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_setting_key (setting_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -122,3 +127,13 @@ INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
     ('daily_card_required', '1'),
     ('session_lifetime_min', '30'),
     ('deleted_bill_retention_days', '30');
+
+-- -----------------------------------------------------------
+-- Seed: the first owner account
+-- -----------------------------------------------------------
+-- Without this row there is no way to sign in, so a schema-only import leaves
+-- the portal unusable. The password is public knowledge, so change it right
+-- after the first login from Profile -> Change password.
+INSERT IGNORE INTO users (id, branch_id, name, email, username, password_hash, role, status)
+VALUES
+    (1, NULL, 'Radha Rani Owner', 'owner@radharani.local', 'owner', '$2y$10$TvPhYOxNBjhTXNRbwPtgXOmSwfrXdkbPq/2ZWGMgv3xEeAMZrxsqG', 'owner', 'active');

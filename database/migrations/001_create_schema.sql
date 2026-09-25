@@ -1,5 +1,9 @@
 -- Radha Rani Hotel Portal - Database Schema
 -- Run automatically by MySQL on first container start
+--
+-- DATETIME rather than TIMESTAMP throughout: no 1970-2038 range limit, no
+-- dependence on explicit_defaults_for_timestamp, and some phpMyAdmin builds
+-- mis-parse the TIMESTAMP keyword during import.
 
 -- -----------------------------------------------------------
 -- Table: branches
@@ -12,9 +16,9 @@ CREATE TABLE IF NOT EXISTS branches (
     phone VARCHAR(30) NULL,
     email VARCHAR(190) NULL,
     status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uq_branch_code (branch_code),
     KEY idx_status (status)
@@ -32,10 +36,10 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('owner', 'branch_admin') NOT NULL DEFAULT 'branch_admin',
     status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
-    last_login_at TIMESTAMP NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP NULL,
+    last_login_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uq_email (email),
     UNIQUE KEY uq_username (username),
@@ -61,9 +65,9 @@ CREATE TABLE IF NOT EXISTS bills (
     file_size INT UNSIGNED NOT NULL DEFAULT 0,
     description VARCHAR(500) NULL,
     status ENUM('active', 'deleted') NOT NULL DEFAULT 'active',
-    uploaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP NULL,
+    uploaded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL,
     PRIMARY KEY (id),
     KEY idx_branch_id (branch_id),
     KEY idx_payment_type (payment_type),
@@ -89,7 +93,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     description TEXT NULL,
     ip_address VARCHAR(45) NULL,
     user_agent VARCHAR(500) NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_user_id (user_id),
     KEY idx_branch_id (branch_id),

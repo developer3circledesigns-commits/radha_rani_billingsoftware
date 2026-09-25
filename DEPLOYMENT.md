@@ -309,6 +309,8 @@ Then confirm in a browser:
 | `bills.pdf_bytes` missing | Schema predates dual storage | `php tools/migrate.php` |
 | Large uploads rejected | `max_allowed_packet` too small | Expected — see section 6; lower Settings → Maximum PDF Size |
 | No PDF data being stored | `config.local.php` DB password wrong, old DB still selected | Confirm `DB_NAME` points at the imported database |
+| `Unknown data type: 'TIMESTAM...'` on import | phpMyAdmin's SQL linter mangling a `TIMESTAMP` column | Already fixed in `database/init.sql` — use `DATETIME` throughout. Pull the latest commit, or use the **Import** tab rather than pasting into the SQL box |
+| Import "succeeds" but login says invalid credentials | Schema imported without the owner row | Re-import `database/init.sql`; it seeds the owner (`owner` / `Owner@123`) — then change the password in Profile |
 
 ### Blank 500 pages: the two built-in diagnostic pages
 
