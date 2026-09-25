@@ -390,7 +390,7 @@ if (isPost()) {
     </div>
 
     <div class="l1-copy" id="portal">
-        <p class="l1-overline">The Branch Bill Portal</p>
+        <!-- <p class="l1-overline">The Branch Bill Portal</p> -->
         <h1>Every branch, every bill —<br><em>one calm dashboard.</em></h1>
         <p class="l1-lead">
             Radha Rani Hotel gathers daily cash and card bill PDFs from every branch,
