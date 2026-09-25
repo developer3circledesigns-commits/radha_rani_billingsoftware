@@ -1,11 +1,17 @@
 # ===================================================================
 # Radha Rani Hotel Portal - .gitignore
 # ===================================================================
-# Two rules drive everything below:
+# Three rules drive everything below:
 #   1. Never commit credentials, real bill PDFs, or logs.
-#   2. Never ignore the vendored FRONTEND libraries in
+#   2. Never commit database dumps or exports - they contain every bill
+#      row, every user and every password_hash.
+#   3. Never ignore the vendored FRONTEND libraries in
 #      public/assets/vendor/ - they are required for the site to render.
 #      Note the leading slash on "/vendor/" for exactly that reason.
+#
+# NOTE: a .gitignore is a safety net, not a guarantee. It can be
+# overridden with "git add -f", and it cannot see secrets that are
+# already in a commit. See DEPLOYMENT.md for the pre-push checklist.
 # ===================================================================
 
 
@@ -30,10 +36,14 @@ public/.htaccess.local
 public/.user.ini.local
 *.local.php
 
-# TLS / SSH / deployment keys
+# TLS / SSH / deployment keys and keystores
 *.pem
 *.key
 *.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
 id_rsa
 id_rsa.pub
 known_hosts
@@ -42,9 +52,43 @@ known_hosts
 .docker/
 deploy.key
 
+# Basic-auth password files
+.htpasswd
+*.htpasswd
+
 
 # -------------------------------------------------------------------
-# 2. Runtime storage - bill PDFs, archives and logs
+# 2. Database dumps, exports and captured traffic
+# -------------------------------------------------------------------
+# A mysqldump contains every bill row, every user and every
+# password_hash value. It must never be committed. The .htaccess already
+# blocks *.sql over HTTP, but git ignores that entirely, so it is
+# blocked here as well.
+#
+# The negation is what keeps the SCHEMA tracked: database/init.sql and
+# database/migrations/*.sql are source code and have to be versioned.
+*.sql
+!database/**/*.sql
+
+# Data exports - just as sensitive as a dump.
+*.csv
+*.tsv
+*.xls
+*.xlsx
+*.ods
+
+# HTTP archives replay the session: cookies, Authorization headers and
+# bearer tokens are all inside a .har file.
+*.har
+
+# Local database files
+*.db
+*.sqlite
+*.sqlite3
+
+
+# -------------------------------------------------------------------
+# 3. Runtime storage - bill PDFs, archives and logs
 # -------------------------------------------------------------------
 # Real customer bill PDFs must never enter the repository: they are
 # private financial documents and they are large binaries that would
@@ -67,7 +111,7 @@ deploy.key
 
 
 # -------------------------------------------------------------------
-# 3. Database volume
+# 4. Database volume
 # -------------------------------------------------------------------
 # Local MySQL data directory used by docker compose. Never version it.
 /db/*
@@ -75,7 +119,7 @@ deploy.key
 
 
 # -------------------------------------------------------------------
-# 4. Dependencies
+# 5. Dependencies
 # -------------------------------------------------------------------
 # Root-only: this is where Composer would install. The leading slash is
 # deliberate so it does NOT catch public/assets/vendor/, which holds the
@@ -89,7 +133,7 @@ deploy.key
 
 
 # -------------------------------------------------------------------
-# 5. Operating system noise
+# 6. Operating system noise
 # -------------------------------------------------------------------
 .DS_Store
 .DS_Store?
@@ -105,7 +149,7 @@ $RECYCLE.BIN/
 
 
 # -------------------------------------------------------------------
-# 6. IDE and editor settings
+# 7. IDE and editor settings
 # -------------------------------------------------------------------
 .vscode/
 .idea/
@@ -119,7 +163,7 @@ $RECYCLE.BIN/
 
 
 # -------------------------------------------------------------------
-# 7. Logs, caches and temporary files
+# 8. Logs, caches and temporary files
 # -------------------------------------------------------------------
 *.log
 .cache/
@@ -137,7 +181,7 @@ coverage/
 
 
 # -------------------------------------------------------------------
-# 8. Deployment / upload leftovers
+# 9. Deployment / upload leftovers
 # -------------------------------------------------------------------
 *.zip
 *.tar
@@ -146,15 +190,14 @@ coverage/
 *.rar
 *.7z
 deploy*.txt
-*.sql.gz
 
 
 # -------------------------------------------------------------------
-# 9. Files that SHOULD be committed - listed here as documentation
+# 10. Files that SHOULD be committed - listed here as documentation
 # -------------------------------------------------------------------
 # Deliberately NOT ignored, because the site breaks without them:
 #   .htaccess, public/.htaccess, storage/.htaccess   security rules
 #   public/.user.ini                                PHP limits
 #   public/assets/vendor/                           Bootstrap CSS/JS
-#   app/, database/, docker/, tools/, public/       application code
+#   app/, database/*.sql, docker/, tools/, public/   application code
 #   DEPLOYMENT.md, README.md                        documentation

@@ -4,17 +4,22 @@ services:
     container_name: radha_rani_db
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: rootpass
+      # Passwords come from docker/.env (git-ignored) with a dev-only
+      # fallback. The fallback is fine for a laptop and MUST be overridden
+      # anywhere reachable - the value below is published in this repo.
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpass}
       MYSQL_DATABASE: radha_rani
       MYSQL_USER: radha
-      MYSQL_PASSWORD: radhapass
+      MYSQL_PASSWORD: ${DB_PASSWORD:-radhapass}
     ports:
       - "3308:3306"
     volumes:
       - db_data:/var/lib/mysql
       - ../database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpass"]
+      # $$ escapes the variable so Compose passes a literal $ to the
+      # container, where the shell expands it from the environment.
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p\"$$MYSQL_ROOT_PASSWORD\""]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -32,7 +37,7 @@ services:
       DB_PORT: "3306"
       DB_NAME: radha_rani
       DB_USER: radha
-      DB_PASS: radhapass
+      DB_PASS: ${DB_PASSWORD:-radhapass}
     volumes:
       - ../:/var/www
       - ./php.ini:/usr/local/etc/php/conf.d/radha_rani.ini:ro
