@@ -34,6 +34,11 @@ define('DB_PASS', 'paste-the-password-hpanel-generated');
 // https://example.com/portal. Leave commented at the domain root.
 // define('APP_URL', 'https://example.com/portal');
 
-// Uncomment only after login works. This hides error detail from visitors and
-// writes it to storage/logs/app.log instead.
+// Uncomment once login works. This hides error detail from visitors and writes
+// it to storage/logs/app.log instead. config.php already defaults to production,
+// so leaving this commented is safe; setting it explicitly just makes the
+// intent obvious and survives a future change to that default.
 // define('APP_ENV', 'production');
+
+// On your own machine you can instead opt in to visible errors:
+// define('APP_ENV', 'development');

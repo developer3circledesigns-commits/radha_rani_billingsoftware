@@ -43,7 +43,13 @@ if (is_file($localConfigFile) && getenv('DB_NAME') === false) {
 define('APP_NAME', 'Radha Rani Hotel Portal');
 define('APP_ORG', 'Radha Rani Hotel');
 define('APP_VERSION', '1.0.0');
-define('APP_ENV', env('APP_ENV', defined('APP_ENV') ? APP_ENV : 'development'));
+// Default to 'production', not 'development'. A deployment that never sets
+// APP_ENV (shared hosting normally does not) must fail CLOSED: with the old
+// 'development' default, display_errors stayed on and every PHP warning
+// rendered to visitors absolute paths, SQL fragments and the DB DSN.
+// Docker opts in explicitly with APP_ENV=development (docker-compose.yml), and
+// a developer can set APP_ENV=development in app/config/config.local.php.
+define('APP_ENV', env('APP_ENV', defined('APP_ENV') ? APP_ENV : 'production'));
 
 // Base URL. When deployed at the web root (container / shared-hosting docroot)
 // the app's own files are all at the site root, so BASE_URL is scheme + host.
@@ -114,11 +120,15 @@ if (function_exists('mb_internal_encoding')) {
     mb_internal_encoding('UTF-8');
 }
 
-// Disable display_errors in production
-if (APP_ENV === 'production') {
-    ini_set('display_errors', '0');
-    ini_set('log_errors', '1');
-} else {
-    ini_set('display_errors', '1');
+// Error reporting.
+// Production: never render errors to the response, always write them to
+// storage/logs/app.log so problems stay diagnosable.
+// CLI is the one place showing errors is safe - no web server ever serves it -
+// and the preflight tools in tools/ need to see their own failures, so keep
+// display_errors on there regardless of APP_ENV.
+$showErrors = PHP_SAPI === 'cli' || APP_ENV !== 'production';
+ini_set('display_errors', $showErrors ? '1' : '0');
+ini_set('log_errors', '1');
+if ($showErrors) {
     ini_set('error_reporting', E_ALL);
 }

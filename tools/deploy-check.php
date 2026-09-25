@@ -74,6 +74,12 @@ register_shutdown_function(static function () use ($printReport): void {
     $printReport(true);
 });
 
+// Loaded here, not left to the bootstrap at the end of this file, because the
+// error-display checks below need APP_ENV resolved. config.php only defines
+// constants and adjusts ini settings, so loading it early is safe, and
+// bootstrap.php's later require_once reuses the same definitions.
+require_once $root . '/app/config/config.php';
+
 // ------------------------------------------------------------------
 // 1. PHP version and extensions
 // ------------------------------------------------------------------
@@ -143,8 +149,21 @@ if ($execIni === 0 || $execIni >= 60) {
     $warn("max_execution_time = {$execIni} may be too short for large PDF writes.");
 }
 
+// display_errors only matters where it is reachable: a web request. This tool
+// runs under the CLI SAPI, where config.php deliberately keeps errors visible
+// so the preflight can report its own failures. So the signal to check is the
+// APP_ENV a web request will resolve to, not the CLI's own ini value.
+if (APP_ENV === 'production') {
+    $ok('APP_ENV is production - config.php forces display_errors off, hides 500-debug.php and 500.php leaks');
+} else {
+    // Warning, not error: docker-compose.yml sets APP_ENV=development on purpose,
+    // so an error here would leave the local baseline permanently red and train
+    // you to ignore errors. config.php already defaults to production, so the only
+    // way to be non-production on a live host is a deliberate setting.
+    $warn('APP_ENV is "' . APP_ENV . '" - expected for local Docker development, but a web request will render PHP errors to visitors (absolute paths, SQL, DB host/name/user). Set APP_ENV=production in app/config/config.local.php on the live host.');
+}
 if (ini_get('display_errors') === '1' || ini_get('display_errors') === 'On') {
-    $warn('display_errors is ON - PHP errors are shown to visitors. Set APP_ENV=production.');
+    $ok('display_errors is on under the CLI only (config.php enables this for tools; it is not web reachable)');
 } else {
     $ok('display_errors is off');
 }

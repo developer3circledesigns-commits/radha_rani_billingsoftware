@@ -108,7 +108,7 @@ ob_start();
                     <dt class="col-4 text-muted">Archive Location</dt><dd class="col-8"><?= e(ROOT_PATH . '/storage/archive/bills') ?></dd>
                     <dt class="col-4 text-muted">Restore Window</dt><dd class="col-8"><?= (int) ($settings['deleted_bill_retention_days'] ?? 30) ?> days</dd>
                     <dt class="col-4 text-muted">Effective Upload Max</dt><dd class="col-8"><?= e(format_bytes($effectiveCapBytes)) ?></dd>
-                    <dt class="col-4 text-muted">DB max_allowed_packet</dt><dd class="col-8"><?= e(format_bytes(BillStorage::maxPacketBytes())) ?></dd>
+                    <!-- <dt class="col-4 text-muted">DB max_allowed_packet</dt><dd class="col-8"><?= e(format_bytes(BillStorage::maxPacketBytes())) ?></dd> -->
                 </dl>
             </div>
         </div>
