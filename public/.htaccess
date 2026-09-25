@@ -14,10 +14,17 @@
 
 # ------------------------------------------------------------------
 # Block application directories from the web.
-# The optional leading group makes these rules work whether the app is
-# installed at the domain root or inside a sub-directory.
+#
+# Anchored to the FIRST path segment on purpose. An earlier version used
+# "^/(.*/)?(app|vendor)(/|$)", which also matched legitimate nested paths
+# such as /assets/vendor/bootstrap/css/bootstrap.min.css and returned 403
+# for the Bootstrap stylesheet - leaving every page unstyled.
+#
+# In the split layout these directories are outside the docroot entirely, so
+# this is only a fallback. In the flat layout the project-root .htaccess
+# blocks them with per-directory RewriteRules.
 # ------------------------------------------------------------------
-RedirectMatch 403 ^/(.*/)?(app|tools|database|docker|db|vendor)(/|$)
+RedirectMatch 403 ^/(app|tools|database|docker|db|vendor|storage)(/|$)
 
 # ------------------------------------------------------------------
 # Block sensitive file types anywhere
@@ -50,8 +57,9 @@ ServerSignature Off
 # allowed in server/virtual-host config and would cause a 500 in .htaccess.
 # The "no script execution" rules live in storage/.htaccess so they apply
 # ONLY inside storage. Never block *.php here: the whole app is PHP.
+# Anchored to the first segment for the same reason as the rule above.
 # ------------------------------------------------------------------
-RedirectMatch 403 ^/(.*/)?storage(/|$)
+RedirectMatch 403 ^/storage(/|$)
 
 # ------------------------------------------------------------------
 # Security headers

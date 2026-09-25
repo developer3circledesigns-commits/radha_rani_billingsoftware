@@ -1,29 +1,65 @@
-# Radha Rani Hotel Portal - project-root guard
+# Radha Rani Hotel Portal - project-root front controller
 #
 # WHY THIS FILE EXISTS
-# The recommended layout puts public_html beside this folder, so Apache never
-# reads this file. But if the whole project is uploaded FLAT (everything
-# inside public_html/), then app/, storage/, tools/, database/, docker/, db/ and
-# vendor/ are all inside the web root and this file is what keeps them private.
+# Hostinger's Git integration can only deploy the repository root into the
+# web root, but this project's entry points (login.php, index.php, owner/,
+# branch/, api/, assets/) all live one level down in public/. Without the
+# rewrite below, a flat deploy would answer /login.php with a 404 because
+# the file is really at public/login.php.
 #
-# It is a near-duplicate of public/.htaccess on purpose: that one protects the
-# split layout, this one protects the flat layout. Both are safe to keep.
+# The rewrite makes public/ transparent: every public URL is served from
+# public/ while the file stays physically there. That matters because the
+# PHP entry points locate the application with dirname(__DIR__) and
+# dirname(__DIR__, 2) - both of which resolve correctly as long as the
+# script is executed from inside public/. No PHP changes are required.
+#
+# This file also keeps the private folders private, which is what allows the
+# flat layout to be safe in the first place.
 #
 # NOTE: no "php_value" here on purpose. It requires mod_php and returns HTTP
 # 500 on LiteSpeed / PHP-FPM, which is what shared hosts run. PHP limits live
 # in public/.user.ini.
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+
+# 0. Already inside public/ (an internal redirect from the rules below).
+#    Stop here. Without this guard the catch-all rule re-matches the
+#    rewritten URI and sends every request to index.php.
+RewriteRule ^public(?:/|$) - [L]
+
+# 1. Private folders: refuse before any rewriting can reach them. [F] is a
+#    hard 403. These patterns are matched per-directory, so they stay correct
+#    when the app is installed in a sub-directory.
+RewriteRule ^(?:app|storage|database|tools|docker|db|vendor)(?:/|$) - [F,L]
+
+# 2. Dotfiles (.env, .git, .htaccess itself).
+RewriteRule (?:^|/)\.(?!well-known(?:/|$)) - [F,L]
+
+# 3. A real file inside public/ is served directly, so PHP scripts execute
+#    and static assets are delivered without a detour.
+RewriteCond %{DOCUMENT_ROOT}/public/$1 -f
+RewriteRule ^(.*)$ public/$1 [L]
+
+# 4. A real directory inside public/ (owner/, branch/, api/, assets/).
+RewriteCond %{DOCUMENT_ROOT}/public/$1 -d
+RewriteRule ^(.*)$ public/$1 [L]
+
+# 5. Everything else is a real route, so hand it to the front controller.
+RewriteRule ^(.*)$ public/index.php [L]
+</IfModule>
 
 # Never serve dotfiles.
 <FilesMatch "^\.">
     Require all denied
 </FilesMatch>
 
-# Block application directories. The optional leading group makes these work
-# whether the app is at the domain root or inside a sub-directory.
-RedirectMatch 403 ^/(.*/)?(app|tools|database|docker|db|vendor)(/|$)
-
-# Block storage outright.
-RedirectMatch 403 ^/(.*/)?storage(/|$)
+# Fallback for hosts with mod_rewrite disabled. Anchored to the start of the
+# path on purpose: a looser pattern such as "^/(.*/)?(app|vendor)(/|$)" also
+# matches legitimate nested paths such as /assets/vendor/... and would strip
+# the Bootstrap stylesheet from every page.
+RedirectMatch 403 ^/(app|tools|database|docker|db|vendor|storage)(/|$)
 
 # Block sensitive file types.
 <FilesMatch "\.(sql|ini|log|md|json|sh|yml|yaml|bak|old|orig|save|swp|tar|gz|zip)$">

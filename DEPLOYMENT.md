@@ -8,50 +8,108 @@ this page is the checklist.
 
 ## 1. What to upload
 
-Upload the **whole project** and keep the folder layout exactly as it is.
-
-The code resolves paths relatively, so `public/` **must** stay a sibling of `app/`:
+Upload the **whole project flat** — the repository root becomes the web root.
+This is what a Git deploy gives you automatically, and it is the layout the
+bundled `.htaccess` files are written to protect.
 
 ```
-radha_rani/
-├── app/          ← PHP application (must NOT be web-reachable)
-├── database/     ← schema + migrations (must NOT be web-reachable)
-├── docker/       ← local development only, safe to skip
-├── public/       ← the ONLY directory that goes in public_html
-├── storage/      ← uploads, archive, logs (must be writable, not web-reachable)
-├── tools/        ← CLI utilities (must NOT be web-reachable)
-├── vendor/       ← empty, no Composer install needed
-└── .user.ini / .htaccess  (they live inside public/)
+public_html/            ← the repository root, deployed as-is
+├── .htaccess           ← root guard (blocks app/, storage/, database/ …)
+├── app/                ← PHP application
+├── database/           ← schema + migrations
+├── public/             ← login.php, index.php, owner/, branch/, api/, assets/
+├── storage/            ← uploads, archive, logs (must be writable)
+├── tools/              ← CLI utilities (cron jobs)
+├── vendor/             ← empty, no Composer install needed
+└── docker/             ← local development only, safe to delete after deploy
 ```
 
-### Where each part goes
+### Why the layout matters
 
-| Local path | Upload to | Notes |
-|---|---|---|
-| everything in `public/` | `public_html/` | `login.php`, `index.php`, `owner/`, `branch/`, `api/`, `assets/`, `.htaccess`, `.user.ini` |
-| `app/` | `/home/USER/radha_rani/app/` | one level **above** `public_html` |
-| `storage/` | `/home/USER/radha_rani/storage/` | must be writable |
-| `tools/` | `/home/USER/radha_rani/tools/` | for the cron jobs |
-| `database/` | `/home/USER/radha_rani/database/` | for migrations |
-| `docker/` | *skip* | not used in production |
+`public/login.php` resolves the app with `dirname(__DIR__)` and
+`public/owner/bills.php` with `dirname(__DIR__, 2)`. Both resolve to the
+**parent of the web root**, so `app/` has to sit directly beside it.
 
-Resulting layout in your account:
+Two layouts work. Both are tested against Apache 2.4 with the shipped
+`.htaccess` files.
+
+#### A. Flat — the whole repository is the web root (use this for Git)
+
+```
+/home/USER/public_html/        ← the repository root
+├── .htaccess                  ← front controller + private-folder guard
+├── app/  database/  storage/  tools/  vendor/  docker/
+└── public/                    ← login.php, owner/, api/, assets/
+```
+
+Hostinger's Git integration can only deploy the repository root into the web
+root, so this is the layout you get by default. The root `.htaccess` rewrites
+every public URL into `public/` and returns 403 for the private folders.
+
+- All 17 public routes verified: `/login.php`, `/owner/*`, `/branch/*`,
+  `/api/*`, and every asset including `/assets/vendor/bootstrap/…`.
+- All 30 sensitive paths verified 403: `app/`, `storage/`, `database/`,
+  `tools/`, `docker/`, `db/`, `vendor/`, dotfiles, and every `.sql`/`.md`.
+
+#### B. Split — `public/` becomes the web root (use this for FTP uploads)
 
 ```
 /home/USER/
-├── public_html/          ← docroot: public/* contents live here
-└── radha_rani/           ← everything else
-    ├── app/
-    ├── database/
-    ├── storage/
-    └── tools/
+├── app/                       ← sibling of public_html, NOT nested deeper
+├── database/  storage/  tools/  vendor/
+└── public_html/               ← the CONTENTS of public/
 ```
 
-> **Do not** put `app/` inside `public_html/`. If you prefer a single flat upload
-> (everything inside `public_html/`), the included `.htaccess` blocks `app/`,
-> `storage/`, `tools/`, `database/`, `docker/`, `db/` and `vendor/` from the web, so
-> it is safe — but the split layout is better because those files are never
-> web-reachable in the first place.
+Upload the contents of `public/` into `public_html/`, then put `app/`,
+`storage/`, `database/`, `tools/` and `vendor/` **directly in `/home/USER/`**.
+
+> The one thing that breaks this layout is putting `app/` inside an extra
+> folder such as `/home/USER/radha_rani/app/`. The entry points look for
+> `/home/USER/app/`, not `/home/USER/radha_rani/app/`, and every page dies
+> with a blank 500.
+
+Here `app/` and `storage/` are outside the docroot, so they are unreachable by
+construction — traversal attempts (`/../app/config/config.php`) were verified
+to return 403 as well.
+
+---
+
+## 1a. Deploying with Hostinger Git integration (recommended)
+
+### Do NOT add a `package.json`
+
+If Hostinger shows:
+
+> This repository is missing a package.json file. Add a package.json file to
+> your repo to enable full import, or continue as a static website.
+
+you have opened **Deploy Web App**, which is Hostinger's **Node.js** pipeline.
+It expects `npm install` and a Node entry point. This project is plain PHP with
+no npm dependencies, so adding a `package.json` would make Hostinger treat it as
+a Node app, look for a start script, and fail to serve the site.
+
+Use the generic Git feature instead — it runs **no build step** and serves the
+repository exactly as committed, which is what a PHP app needs.
+
+### Steps
+
+1. Push the repository to GitHub.
+2. hPanel → **Websites** → your domain → **Dashboard**.
+3. Sidebar → **Advanced → Git**. *(Not "Deploy Web App", and not Auto Installer.)*
+4. **Connect with GitHub** → authorise the Hostinger GitHub App for this repo.
+5. Pick the repository, then the branch (`main`).
+6. **Root directory**: leave it as `public_html`. That produces layout A above;
+   the root `.htaccess` handles the rest.
+7. **Deploy**.
+
+After the first deploy, open the hPanel File Manager and create
+`app/config/config.local.php` with your database credentials (section 3). That
+file is git-ignored, so a normal `git pull` will not touch it.
+
+> If a later deploy ever removes it, move the credentials to environment
+> variables instead — `app/config/config.php` reads `DB_HOST`, `DB_PORT`,
+> `DB_NAME`, `DB_USER` and `DB_PASS` from the environment first, ahead of both
+> the local file and the built-in defaults.
 
 ---
 
