@@ -84,7 +84,14 @@ function bootstrap_exception_handler(Throwable $e): void
     }
 
     http_response_code(500);
-    require APP_PATH . '/views/errors/500.php';
+
+    // Off production, show the real exception so a setup mistake is
+    // diagnosable. In production a bare 500 with no detail.
+    $view = APP_ENV !== 'production' && is_file(APP_PATH . '/views/errors/500-debug.php')
+        ? '/views/errors/500-debug.php'
+        : '/views/errors/500.php';
+
+    require APP_PATH . $view;
     exit;
 }
 

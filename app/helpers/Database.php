@@ -39,16 +39,37 @@ final class Database
                 error_log($target);
                 error_log($hint);
 
+                $logEntry = sprintf(
+                    "[%s] %s | %s | %s\n",
+                    date('Y-m-d H:i:s'),
+                    $detail,
+                    $target,
+                    $hint
+                );
+                if (!is_dir(LOG_PATH)) {
+                    @mkdir(LOG_PATH, 0775, true);
+                }
+                @file_put_contents(LOG_PATH . '/app.log', $logEntry, FILE_APPEND);
+
                 // CLI tools must not print an HTML page into the terminal.
                 if (PHP_SAPI === 'cli') {
                     fwrite(STDERR, $detail . PHP_EOL);
                     fwrite(STDERR, '  ' . $target . PHP_EOL);
                     fwrite(STDERR, '  ' . $hint . PHP_EOL);
+                    fwrite(STDERR, '  full details: ' . LOG_PATH . '/app.log' . PHP_EOL);
                     exit(1);
                 }
 
                 http_response_code(500);
-                require APP_PATH . '/views/errors/500.php';
+
+                // Off production, name the real cause so setup mistakes are
+                // obvious instead of showing a bare 500. In production this
+                // would publish the host and database name, so it stays generic.
+                $view = APP_ENV !== 'production' && is_file(APP_PATH . '/views/errors/db-failed.php')
+                    ? '/views/errors/db-failed.php'
+                    : '/views/errors/500.php';
+
+                require APP_PATH . $view;
                 exit;
             }
         }

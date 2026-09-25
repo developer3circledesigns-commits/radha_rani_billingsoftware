@@ -309,3 +309,24 @@ Then confirm in a browser:
 | `bills.pdf_bytes` missing | Schema predates dual storage | `php tools/migrate.php` |
 | Large uploads rejected | `max_allowed_packet` too small | Expected — see section 6; lower Settings → Maximum PDF Size |
 | No PDF data being stored | `config.local.php` DB password wrong, old DB still selected | Confirm `DB_NAME` points at the imported database |
+
+### Blank 500 pages: the two built-in diagnostic pages
+
+The error page is deliberately vague, because in production a raw exception message
+can leak the database name and hostname. But while you are still setting up, the app
+will show you the actual reason. Both pages appear **only** when `APP_ENV` is not
+`production`; set `define('APP_ENV', 'production');` in `config.local.php` once you
+are finished and both fall back to a plain 500 with no detail.
+
+| Page you see | What it means | What to do |
+|---|---|---|
+| **"Cannot connect to the database"** | MySQL refused the connection. The driver message and the exact `user@host:port/db` target are printed, with no password. | Create `app/config/config.local.php` with the four `DB_*` values from hPanel → Databases, then import `database/init.sql` (section 4). |
+| **"Application error"** + exception name | The connection worked but a query failed — usually a table that does not exist because the schema was never imported. A stack trace is available under a fold. | Import the schema, and check `DB_NAME` matches the database you imported into. |
+
+Both failures are also appended to `storage/logs/app.log`, which is the authoritative
+record. Read it with hPanel → File Manager → `storage/logs/app.log`.
+
+A useful tell: **if the login form renders but submitting it returns 500**, the failure
+is at the database, not the page. The form itself needs no database; the first thing
+the POST handler does is query the login-throttle table.
+
