@@ -107,9 +107,13 @@ if (isPost()) {
             --bs-font-sans-serif: "Lato", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
+        html { height: 100%; overflow: hidden; }
+
         body.l1 {
             margin: 0;
-            min-height: 100vh;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
             display: flex;
             background: var(--l1-surface);
             color: var(--l1-ink);
@@ -154,24 +158,20 @@ if (isPost()) {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 30px 0 10px;
+            padding: clamp(10px, 2.2vh, 30px) 0 clamp(6px, 1vh, 10px);
         }
         .l1-logo {
             display: inline-flex;
             align-items: center;
-            gap: 12px;
             color: #fff;
             text-decoration: none;
         }
         .l1-logo img {
-            width: 42px; height: 42px;
-            border-radius: 11px;
+            width: clamp(84px, 16vh, 150px); height: clamp(84px, 16vh, 150px);
             object-fit: contain;
-            background: #fff;
-            filter: none;
+            background: transparent;
+            filter: brightness(1.2) saturate(1.15) drop-shadow(0 1px 5px rgba(201, 162, 75, 0.3));
         }
-        .l1-logo strong { font-family: "Cormorant Garamond", Georgia, serif; font-size: 1.22rem; font-weight: 600; display: block; line-height: 1.1; }
-        .l1-logo span { display: block; font-size: 0.68rem; letter-spacing: 2.4px; text-transform: uppercase; color: var(--rr-gold-light); }
         .l1-nav-links { display: flex; align-items: center; gap: 26px; }
         .l1-nav-links a { color: rgba(255, 255, 255, 0.78); text-decoration: none; font-size: 0.86rem; font-weight: 500; transition: color 0.15s ease; }
         .l1-nav-links a:hover { color: #fff; }
@@ -185,19 +185,20 @@ if (isPost()) {
 
         .l1-copy {
             flex: 1;
+            min-height: 0;
             display: flex;
             flex-direction: column;
             justify-content: center;
             max-width: 580px;
-            padding: 70px 0 50px;
+            padding: clamp(20px, 4.4vh, 70px) 0 clamp(16px, 3.2vh, 50px);
         }
         .l1-overline {
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 22px;
+            margin-bottom: clamp(10px, 1.9vh, 22px);
             color: var(--rr-gold-light);
-            font-size: 0.72rem;
+            font-size: clamp(0.64rem, 1.2vh, 0.72rem);
             letter-spacing: 3px;
             text-transform: uppercase;
             font-weight: 700;
@@ -206,49 +207,49 @@ if (isPost()) {
         .l1-overline::before { content: ""; width: 34px; height: 1px; background: var(--l1-gold); }
         .l1-copy h1 {
             font-family: "Cormorant Garamond", Georgia, serif;
-            font-size: clamp(2.6rem, 4.8vw, 4.1rem);
+            font-size: clamp(1.75rem, 5.2vh, 4.1rem);
             font-weight: 600;
-            line-height: 1.18;
+            line-height: 1.14;
             letter-spacing: 0.25px;
             text-wrap: balance;
-            margin: 0 0 20px;
+            margin: 0 0 clamp(10px, 1.9vh, 20px);
             color: #fff;
         }
         .l1-copy h1 em { font-style: italic; font-weight: 600; color: var(--rr-gold-light); }
-        .l1-lead { font-size: 1rem; line-height: 1.75; letter-spacing: 0.15px; color: rgba(255, 255, 255, 0.78); max-width: 50ch; margin-bottom: 28px; }
-        .l1-features { list-style: none; margin: 0 0 34px; padding: 0; display: grid; gap: 14px; }
-        .l1-features li { display: flex; align-items: flex-start; gap: 12px; color: rgba(255, 255, 255, 0.94); font-size: 0.95rem; font-weight: 500; line-height: 1.5; }
+        .l1-lead { font-size: clamp(0.8rem, 1.55vh, 1rem); line-height: 1.6; letter-spacing: 0.15px; color: rgba(255, 255, 255, 0.78); max-width: 50ch; margin-bottom: clamp(12px, 2.4vh, 28px); }
+        .l1-features { list-style: none; margin: 0 0 clamp(12px, 2.6vh, 34px); padding: 0; display: grid; gap: clamp(6px, 1.2vh, 14px); }
+        .l1-features li { display: flex; align-items: flex-start; gap: 12px; color: rgba(255, 255, 255, 0.94); font-size: clamp(0.78rem, 1.5vh, 0.95rem); font-weight: 500; line-height: 1.45; }
         .l1-features i {
-            width: 26px; height: 26px;
+            width: clamp(20px, 3.4vh, 26px); height: clamp(20px, 3.4vh, 26px);
             margin-top: 1px;
             flex-shrink: 0;
             border-radius: 50%;
             background: var(--l1-gold-soft);
             color: var(--rr-gold-light);
             display: inline-flex; align-items: center; justify-content: center;
-            font-size: 0.9rem;
+            font-size: clamp(0.72rem, 1.4vh, 0.9rem);
         }
         .l1-quote {
             margin: 0;
-            padding: 20px 24px;
+            padding: clamp(11px, 1.9vh, 20px) clamp(15px, 2.2vh, 24px);
             border: 1px solid rgba(255, 255, 255, 0.12);
             border-left: 3px solid var(--l1-gold);
             border-radius: 4px 14px 14px 4px;
             background: rgba(255, 255, 255, 0.05);
         }
-        .l1-quote blockquote { margin: 0 0 10px; font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-weight: 500; font-size: 1.15rem; line-height: 1.45; color: rgba(255, 255, 255, 0.92); }
-        .l1-quote figcaption { font-size: 0.76rem; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); }
+        .l1-quote blockquote { margin: 0 0 clamp(5px, 0.9vh, 10px); font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-weight: 500; font-size: clamp(0.9rem, 1.9vh, 1.15rem); line-height: 1.4; color: rgba(255, 255, 255, 0.92); }
+        .l1-quote figcaption { font-size: clamp(0.66rem, 1.1vh, 0.76rem); letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); }
 
         .l1-stats {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 26px;
-            padding: 26px 0 34px;
+            gap: clamp(12px, 2.2vh, 26px);
+            padding: clamp(12px, 2.4vh, 26px) 0 clamp(14px, 3vh, 34px);
             border-top: 1px solid rgba(255, 255, 255, 0.14);
         }
-        .l1-stats span { display: block; font-family: "Cormorant Garamond", Georgia, serif; font-size: 2.1rem; font-weight: 700; color: #fff; line-height: 1.05; letter-spacing: 0.5px; }
-        .l1-stats span i { font-size: 1rem; color: var(--rr-gold-light); margin-left: 6px; }
-        .l1-stats small { display: block; margin-top: 6px; color: rgba(255, 255, 255, 0.55); font-size: 0.74rem; letter-spacing: 1px; text-transform: uppercase; }
+        .l1-stats span { display: block; font-family: "Cormorant Garamond", Georgia, serif; font-size: clamp(1.45rem, 3.2vh, 2.1rem); font-weight: 700; color: #fff; line-height: 1.05; letter-spacing: 0.5px; }
+        .l1-stats span i { font-size: 0.8rem; color: var(--rr-gold-light); margin-left: 6px; }
+        .l1-stats small { display: block; margin-top: clamp(3px, 0.6vh, 6px); color: rgba(255, 255, 255, 0.55); font-size: clamp(0.62rem, 1.05vh, 0.74rem); letter-spacing: 1px; text-transform: uppercase; }
 
         /* ---------------- Form panel ---------------- */
         .l1-panel {
@@ -258,7 +259,7 @@ if (isPost()) {
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 60px 40px;
+            padding: clamp(24px, 4.6vh, 60px) 40px;
             background:
                 radial-gradient(90% 60% at 100% 0%, rgba(201, 162, 75, 0.08) 0%, transparent 60%),
                 var(--l1-surface);
@@ -271,7 +272,7 @@ if (isPost()) {
             border-top: 3px solid var(--l1-gold);
             border-radius: 16px;
             box-shadow: 0 24px 60px rgba(33, 42, 52, 0.12);
-            padding: 38px 36px 32px;
+            padding: clamp(20px, 3.2vh, 38px) 36px clamp(18px, 2.6vh, 32px);
         }
         .l1-card h2 { font-family: "Cormorant Garamond", Georgia, serif; font-size: 1.65rem; font-weight: 600; margin: 0 0 6px; }
         .l1-card-sub { font-size: 0.88rem; color: var(--l1-muted); margin-bottom: 26px; }
@@ -307,35 +308,36 @@ if (isPost()) {
         .l1-after {
             width: 100%;
             max-width: 420px;
-            margin-top: 30px;
+            margin-top: clamp(12px, 2.4vh, 30px);
             display: grid;
-            gap: 12px;
+            gap: clamp(7px, 1.3vh, 12px);
         }
         .l1-after-row {
             display: flex;
             align-items: center;
             gap: 14px;
-            padding: 14px 16px;
+            padding: clamp(9px, 1.6vh, 14px) 16px;
             background: #fff;
             border: 1px solid var(--l1-line);
             border-radius: 12px;
         }
         .l1-after-row i {
-            width: 38px; height: 38px;
+            width: clamp(28px, 4.8vh, 38px); height: clamp(28px, 4.8vh, 38px);
             border-radius: 10px;
             background: var(--l1-gold-soft);
             color: var(--l1-burgundy);
             display: inline-flex; align-items: center; justify-content: center;
-            font-size: 1.1rem;
+            font-size: clamp(0.95rem, 1.7vh, 1.1rem);
             flex-shrink: 0;
         }
         .l1-after-row strong { display: block; font-size: 0.86rem; }
-        .l1-after-row small { color: var(--l1-muted); font-size: 0.78rem; }
-        .l1-foot { margin-top: auto; padding-top: 30px; color: var(--l1-muted); font-size: 0.76rem; text-align: center; }
+        .l1-after-row small { color: var(--l1-muted); font-size: clamp(0.72rem, 1.25vh, 0.78rem); }
+        .l1-foot { margin-top: auto; padding-top: clamp(12px, 2.4vh, 30px); color: var(--l1-muted); font-size: 0.76rem; text-align: center; }
 
         /* ---------------- Responsive ---------------- */
         @media (max-width: 991.98px) {
-            body.l1 { display: block; }
+            html { overflow: auto; }
+            body.l1 { display: block; height: auto; min-height: 100vh; overflow: visible; }
             .l1-brand { width: 100%; min-height: auto; padding: 0 26px; }
             .l1-nav { padding-top: 22px; }
             .l1-nav-links { display: none; }
@@ -347,6 +349,26 @@ if (isPost()) {
             .l1-panel { padding: 44px 20px 90px; }
             .l1-card { padding: 30px 22px 26px; }
         }
+        /* Short desktop windows */
+        @media (min-width: 992px) and (max-height: 700px) {
+            .l1-quote { display: none; }
+        }
+        @media (min-width: 992px) and (max-height: 680px) {
+            .l1-panel { padding-top: 14px; padding-bottom: 14px; }
+            .l1-card { padding: 18px 32px 16px; }
+            .l1-card h2 { font-size: 1.45rem; }
+            .l1-card-sub { margin-bottom: 16px; }
+            .l1-card .form-control { padding: 7px 12px; }
+            .l1-submit { padding: 8px 16px; }
+            .l1-help { margin-top: 12px; }
+            .l1-after { margin-top: 12px; gap: 8px; }
+            .l1-after-row { padding: 9px 14px; }
+            .l1-foot { padding-top: 10px; }
+        }
+        @media (min-width: 992px) and (max-height: 560px) {
+            .l1-features { display: none; }
+            .l1-after { display: none; }
+        }
     </style>
 </head>
 <body class="l1">
@@ -356,7 +378,6 @@ if (isPost()) {
     <div class="l1-nav">
         <a class="l1-logo" href="<?= url('login.php') ?>">
             <img src="<?= url('assets/images/logo.png') ?>" alt="Radha Rani Hotel logo">
-            <span><strong>Radha Rani</strong><span>Bill Portal</span></span>
         </a>
         <nav class="l1-nav-links" aria-label="Portal links">
             <!-- <a href="#portal">The Portal</a> -->
