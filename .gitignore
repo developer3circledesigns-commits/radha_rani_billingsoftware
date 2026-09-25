@@ -23,6 +23,7 @@
 # fills in real credentials and commits, the password is in git history
 # forever. Keep it untracked.
 app/config/config.local.php
+app/config/config.php
 
 # Any .env file, in case one is added later. The app does not use one
 # today, but these rules guarantee a mistake can never be committed or
