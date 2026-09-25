@@ -128,7 +128,19 @@ prefixed names exactly as shown.
 
 ## 3. Add the credentials
 
-Create **`app/config/config.local.php`**. Start from the tracked template
+### Put the file OUTSIDE the project folder
+
+Create **`radha-rani-credentials.php` one level above the project folder**, not
+inside it:
+
+```
+/home/u123456789/                          <- home directory
+├── radha_rani/                            <- the Git checkout (deploys rewrite this)
+└── radha-rani-credentials.php             <- the credentials live here
+```
+
+In hPanel's File Manager, go up one level from `public_html` (or from your
+project folder) and create the new file. Start from the tracked template
 `app/config/config.local.example.php`, which contains no secrets:
 
 ```php
@@ -140,24 +152,42 @@ define('DB_USER', 'u123456789_radha_rani');   // prefixed name from hPanel
 define('DB_PASS', 'the-password-hPanel-generated');
 ```
 
-### Why upgrades cannot overwrite it
+### Why it must live outside the checkout
 
-`app/config/config.local.php` is listed in `.gitignore`, so it is not in the
-repository and **no `git push` or `git pull` can modify or delete it**. It is
-loaded before the defaults in `config.php`, so it keeps winning over them.
+A deploy only ever rewrites the Git checkout. Anything outside it is untouchable.
+This is not theoretical: an earlier version of this project had
+`app/config/config.local.php` **committed to Git**, and because a deploy restores
+whatever Git tracks, each push replaced the real credentials with the empty
+all-commented copy from that commit. The file is gitignored now, but a file
+inside the checkout can always be resurrected by a checkout, a reset, or a
+tracked-file from an older commit. Outside the checkout, that cannot happen.
 
-Two consequences worth knowing:
+`app/config/config.local.php` still works as a fallback and is gitignored, so it
+is never uploaded — but it sits inside the folder a deploy rewrites, so prefer the
+outside location. If you use it, copy it out to the outside location afterwards.
 
-- Because Git never sees the file, **Git also cannot restore it.** If a redeploy
-  ever removes it, recreate it from `app/config/config.local.example.php`. Keep a
-  copy of the password somewhere safe outside the repository.
-- `tools/deploy-check.php` reports the file as missing, and warns per constant
-  when `DB_NAME`/`DB_USER`/`DB_PASS` are undefined, empty, or still set to the
-  template placeholder. Run it after any redeploy.
+### Verifying
 
-Precedence is **environment variable > `config.local.php` > built-in default**.
-When the environment supplies `DB_NAME` (Docker, CI), `config.local.php` is
-skipped entirely.
+`tools/deploy-check.php` treats an empty credentials file as a **blocking error**
+(exit code 1), not a warning, and prints which of the two locations it is reading.
+Run it after every deploy:
+
+```bash
+php tools/deploy-check.php
+```
+
+- `radha-rani-credentials.php present outside the Git checkout` — correct setup.
+- `holds no active DB_NAME/DB_USER/DB_PASS defines` — this is the empty-file
+  failure. Rewrite the file with your real values.
+- `No credentials file found` — no file at either location, so the app is running
+  on built-in defaults with an empty password and every database page will 500.
+
+Precedence is **environment variable > outside credentials file >
+`app/config/config.local.php` > built-in default**. When the environment supplies
+`DB_NAME` (Docker, CI), no credentials file is read at all.
+
+Keep a copy of the password in a password manager. Git cannot restore an ignored
+file, and it should never know the password.
 
 ### If the app is in a sub-folder
 

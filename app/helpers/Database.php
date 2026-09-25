@@ -34,7 +34,18 @@ final class Database
             } catch (PDOException $e) {
                 $detail = 'Database connection failed: ' . $e->getMessage();
                 $target = 'Database connection target: ' . DB_USER . '@' . DB_HOST . ':' . DB_PORT . '/' . DB_NAME;
-                $hint = 'Set the credentials in app/config/config.local.php (or the DB_* environment variables).';
+                $credentialsFile = dirname(ROOT_PATH) . '/radha-rani-credentials.php';
+                if (DB_PASS === '') {
+                    $hint = 'DB_PASS is EMPTY - no credentials file was loaded. Write the DB_* defines to '
+                        . $credentialsFile . ' (outside the Git checkout, so no deploy can overwrite it) '
+                        . 'or set the DB_* environment variables.';
+                } else {
+                    $hint = 'Check the credentials in ' . $credentialsFile
+                        . ' or app/config/config.local.php, or the DB_* environment variables.';
+                }
+                if (DB_USER === 'radha' && DB_NAME === 'radha_rani') {
+                    $hint .= ' The built-in development defaults are still in use, so no credentials file was found.';
+                }
                 error_log($detail);
                 error_log($target);
                 error_log($hint);

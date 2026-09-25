@@ -27,14 +27,22 @@ function env(string $key, $default = null)
 // where compose supplies environment variables instead).
 //
 // Precedence everywhere below is:
-//   environment variable  >  config.local.php  >  built-in default
-$localConfigFile = __DIR__ . '/config.local.php';
-// Skip the file when the environment already supplies the database settings
-// (Docker, CI). Otherwise its define() calls would run first and, because a
-// constant cannot be redefined, the environment would silently lose the
-// precedence documented above.
-if (is_file($localConfigFile) && getenv('DB_NAME') === false) {
-    require_once $localConfigFile;
+//   environment variable  >  external credentials file  >  config.local.php
+//   >  built-in default
+$hasEnvDb = getenv('DB_NAME') !== false;
+
+if (!$hasEnvDb) {
+    $externalCredentialsFile = dirname(__DIR__, 3) . '/radha-rani-credentials.php';
+    if (is_file($externalCredentialsFile)) {
+        require_once $externalCredentialsFile;
+    }
+}
+
+if (!$hasEnvDb && !defined('DB_NAME')) {
+    $localConfigFile = __DIR__ . '/config.local.php';
+    if (is_file($localConfigFile)) {
+        require_once $localConfigFile;
+    }
 }
 
 // ------------------------------------------------------------------

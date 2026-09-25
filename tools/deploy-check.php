@@ -314,58 +314,80 @@ if (is_dir($vendor)) {
 // ------------------------------------------------------------------
 echo "== Secrets ==\n";
 
+$externalCredentials = dirname($root) . '/radha-rani-credentials.php';
 $localConfig = $root . '/app/config/config.local.php';
 $localExample = $root . '/app/config/config.local.example.php';
-if (is_file($localConfig)) {
-    $ok('app/config/config.local.php present (credentials kept out of config.php)');
+
+if (is_file($externalCredentials)) {
+    $ok('radha-rani-credentials.php present outside the Git checkout (no deploy can overwrite it)');
 } else {
-    $warn('app/config/config.local.php is absent - shared-hosting DB credentials will have nowhere to live.');
+    $warn('radha-rani-credentials.php not found beside the project root - put the DB_* credentials there so no deploy can overwrite them.');
 }
 
-// The credentials file is gitignored on purpose, so a push can never overwrite
-// it - but that also means Git cannot restore it if a redeploy drops it. The
-// tracked example is what makes it reconstructable.
+if (is_file($localConfig)) {
+    $ok('app/config/config.local.php present (gitignored fallback location)');
+} else {
+    $warn('app/config/config.local.php is absent - acceptable only if the external credentials file exists.');
+}
+
 if (is_file($localExample)) {
     $ok('app/config/config.local.example.php present (template for recreating the credentials file)');
 } else {
-    $warn('app/config/config.local.example.php is missing - if config.local.php is lost it cannot be reconstructed from the repo.');
+    $warn('app/config/config.local.example.php is missing - the credentials file cannot be reconstructed from the repo.');
 }
 
-// Inspect the file's own contents. This runs before any database connection on
-// purpose: a wrong password aborts the connection, so a check placed after it
-// would never report the misconfiguration that caused the failure.
-if (is_file($localConfig) && getenv('DB_NAME') === false) {
-    $configCode = (string) file_get_contents($localConfig);
+$credentialsFile = is_file($externalCredentials)
+    ? $externalCredentials
+    : (is_file($localConfig) ? $localConfig : null);
+
+// Inspect the effective file's own contents. This runs before any database
+// connection on purpose: a wrong password aborts the connection, so a check
+// placed after it would never report the misconfiguration that caused it.
+if (getenv('DB_NAME') !== false) {
+    $ok('DB_* supplied by the environment - no credentials file is needed');
+} elseif ($credentialsFile === null) {
+    $err('No credentials file found. The app is falling back to the built-in development defaults (DB_PASS is empty), so every page that touches the database will fail with a generic 500. Create ' . $externalCredentials . '.');
+} else {
+    $label = basename($credentialsFile);
+    $configCode = (string) file_get_contents($credentialsFile);
     $configCode = (string) preg_replace(['#^\s*(//|\#).*$#m', '#/\*.*?\*/#s'], '', $configCode);
 
-    $expected = ['DB_HOST' => 'localhost', 'DB_PORT' => '3306'];
-    foreach ($expected as $const => $fallback) {
+    foreach (['DB_HOST' => 'localhost', 'DB_PORT' => '3306'] as $const => $fallback) {
         if (preg_match("/define\(\s*'" . $const . "'\s*,\s*'([^']*)'/", $configCode, $m)) {
-            $ok("{$const} is set in config.local.php");
+            $ok("{$const} is set in {$label}");
         } else {
-            $warn("{$const} is not set in config.local.php - the app falls back to {$fallback}.");
+            $warn("{$const} is not set in {$label} - the app falls back to {$fallback}.");
         }
     }
 
+    $definedCount = 0;
     foreach (['DB_NAME', 'DB_USER', 'DB_PASS'] as $const) {
         if (!preg_match("/define\(\s*'" . $const . "'\s*,/", $configCode)) {
-            $warn("{$const} is not defined in config.local.php.");
+            $warn("{$const} is not defined in {$label}.");
             continue;
         }
+        $definedCount++;
         if (preg_match("/define\(\s*'" . $const . "'\s*,\s*'([^']*)'/", $configCode, $m) && trim($m[1]) === '') {
-            $warn("{$const} is defined but empty in config.local.php.");
+            $warn("{$const} is defined but empty in {$label}.");
             continue;
         }
         if (preg_match("/define\(\s*'" . $const . "'\s*,\s*'([^']*)'/", $configCode, $m)) {
             $value = $m[1];
-            if (str_starts_with($value, 'u') === false && $const !== 'DB_PASS') {
+            $isPlaceholder = str_contains($value, 'paste-')
+                || str_contains($value, 'your-')
+                || str_contains($value, 'the-password');
+            if ($isPlaceholder) {
+                $warn("{$const} still holds the template placeholder in {$label}.");
+            } elseif ($const !== 'DB_PASS' && !str_starts_with($value, 'u')) {
                 $warn("{$const} is '{$value}' - hPanel prefixes both the database name and the user with your u-account.");
-            } elseif ($const === 'DB_PASS' && str_contains($value, 'your-') || str_contains($value, 'paste-')) {
-                $warn("{$const} still holds the template placeholder.");
             } else {
-                $ok("{$const} is set in config.local.php");
+                $ok("{$const} is set in {$label}");
             }
         }
+    }
+
+    if ($definedCount === 0) {
+        $err("{$label} holds no active DB_NAME/DB_USER/DB_PASS defines - it is an empty credentials file, the state a deploy leaves behind when the credentials file is tracked in Git. Write the real values into it, or move them to {$externalCredentials} outside the checkout.");
     }
 }
 
