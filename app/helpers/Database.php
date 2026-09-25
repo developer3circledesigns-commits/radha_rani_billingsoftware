@@ -61,15 +61,7 @@ final class Database
                 }
 
                 http_response_code(500);
-
-                // Off production, name the real cause so setup mistakes are
-                // obvious instead of showing a bare 500. In production this
-                // would publish the host and database name, so it stays generic.
-                $view = APP_ENV !== 'production' && is_file(APP_PATH . '/views/errors/db-failed.php')
-                    ? '/views/errors/db-failed.php'
-                    : '/views/errors/500.php';
-
-                require APP_PATH . $view;
+                require APP_PATH . '/views/errors/500.php';
                 exit;
             }
         }

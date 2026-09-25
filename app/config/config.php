@@ -29,7 +29,11 @@ function env(string $key, $default = null)
 // Precedence everywhere below is:
 //   environment variable  >  config.local.php  >  built-in default
 $localConfigFile = __DIR__ . '/config.local.php';
-if (is_file($localConfigFile)) {
+// Skip the file when the environment already supplies the database settings
+// (Docker, CI). Otherwise its define() calls would run first and, because a
+// constant cannot be redefined, the environment would silently lose the
+// precedence documented above.
+if (is_file($localConfigFile) && getenv('DB_NAME') === false) {
     require_once $localConfigFile;
 }
 
@@ -65,11 +69,21 @@ define('LOG_PATH', ROOT_PATH . '/storage/logs');
 // (shared hosting) > built-in default. config.local.php is loaded at the
 // top of this file; it is denied from the web by the .htaccess rules.
 // ------------------------------------------------------------------
-define('DB_HOST', env('DB_HOST', defined('DB_HOST') ? DB_HOST : 'localhost'));
-define('DB_PORT', env('DB_PORT', defined('DB_PORT') ? DB_PORT : '3306'));
-define('DB_NAME', env('DB_NAME', defined('DB_NAME') ? DB_NAME : 'radha_rani'));
-define('DB_USER', env('DB_USER', defined('DB_USER') ? DB_USER : 'radha'));
-define('DB_PASS', env('DB_PASS', defined('DB_PASS') ? DB_PASS : ''));
+// config.local.php may already have defined these. define() on an existing
+// constant emits "Constant X already defined" and is ignored, so guard each one
+// or the log fills with five warnings on every single request.
+$dbSettings = [
+    'DB_HOST' => 'localhost',
+    'DB_PORT' => '3306',
+    'DB_NAME' => 'radha_rani',
+    'DB_USER' => 'radha',
+    'DB_PASS' => '',
+];
+foreach ($dbSettings as $dbConst => $dbFallback) {
+    if (!defined($dbConst)) {
+        define($dbConst, env($dbConst, $dbFallback));
+    }
+}
 
 // ------------------------------------------------------------------
 // Session security

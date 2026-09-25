@@ -22,9 +22,10 @@ if (PHP_SAPI !== 'cli') {
 
 $root = dirname(__DIR__);
 
-// Buffer everything: bootstrap.php starts a session, and this script prints
-// section headers first, which would otherwise trip "headers already sent".
-ob_start();
+// No output buffering is needed: bootstrap.php skips session_start() under CLI,
+// so nothing here can emit "headers already sent". Keeping the stream unbuffered
+// also means the findings printed before a failed database connection are still
+// visible - a buffered run loses them, which is exactly when they matter most.
 
 $errors   = [];
 $warnings = [];
@@ -36,6 +37,42 @@ $oks      = [];
 $ok   = function (string $m) use (&$oks): void { $oks[] = $m; };
 $warn = function (string $m) use (&$warnings): void { $warnings[] = $m; };
 $err  = function (string $m) use (&$errors): void { $errors[] = $m; };
+
+$reportPrinted = false;
+
+// Captured by reference: the closure is created before any finding is recorded,
+// so a by-value copy would still be empty when the report finally prints.
+$printReport = function (bool $aborted) use (&$oks, &$warnings, &$errors, &$reportPrinted): void {
+    if ($reportPrinted) {
+        return;
+    }
+    $reportPrinted = true;
+
+    echo "\n";
+    if ($aborted) {
+        echo "!! The run stopped early (see the error above). Findings so far:\n";
+    }
+    echo str_repeat('=', 64) . "\n";
+    foreach ($oks as $m) {
+        echo "  OK    {$m}\n";
+    }
+    foreach ($warnings as $m) {
+        echo "  WARN  {$m}\n";
+    }
+    foreach ($errors as $m) {
+        echo "  ERROR {$m}\n";
+    }
+    echo str_repeat('=', 64) . "\n";
+    echo sprintf("%d ok, %d warning(s), %d error(s)\n", count($oks), count($warnings), count($errors));
+};
+
+// Registered here, not at the end of the script: a failed database connection
+// calls exit() from inside Database::connection(), long before the last line.
+// Without this the findings gathered up to that point are thrown away, and they
+// are precisely the ones that explain the failure.
+register_shutdown_function(static function () use ($printReport): void {
+    $printReport(true);
+});
 
 // ------------------------------------------------------------------
 // 1. PHP version and extensions
@@ -259,10 +296,58 @@ if (is_dir($vendor)) {
 echo "== Secrets ==\n";
 
 $localConfig = $root . '/app/config/config.local.php';
+$localExample = $root . '/app/config/config.local.example.php';
 if (is_file($localConfig)) {
     $ok('app/config/config.local.php present (credentials kept out of config.php)');
 } else {
     $warn('app/config/config.local.php is absent - shared-hosting DB credentials will have nowhere to live.');
+}
+
+// The credentials file is gitignored on purpose, so a push can never overwrite
+// it - but that also means Git cannot restore it if a redeploy drops it. The
+// tracked example is what makes it reconstructable.
+if (is_file($localExample)) {
+    $ok('app/config/config.local.example.php present (template for recreating the credentials file)');
+} else {
+    $warn('app/config/config.local.example.php is missing - if config.local.php is lost it cannot be reconstructed from the repo.');
+}
+
+// Inspect the file's own contents. This runs before any database connection on
+// purpose: a wrong password aborts the connection, so a check placed after it
+// would never report the misconfiguration that caused the failure.
+if (is_file($localConfig) && getenv('DB_NAME') === false) {
+    $configCode = (string) file_get_contents($localConfig);
+    $configCode = (string) preg_replace(['#^\s*(//|\#).*$#m', '#/\*.*?\*/#s'], '', $configCode);
+
+    $expected = ['DB_HOST' => 'localhost', 'DB_PORT' => '3306'];
+    foreach ($expected as $const => $fallback) {
+        if (preg_match("/define\(\s*'" . $const . "'\s*,\s*'([^']*)'/", $configCode, $m)) {
+            $ok("{$const} is set in config.local.php");
+        } else {
+            $warn("{$const} is not set in config.local.php - the app falls back to {$fallback}.");
+        }
+    }
+
+    foreach (['DB_NAME', 'DB_USER', 'DB_PASS'] as $const) {
+        if (!preg_match("/define\(\s*'" . $const . "'\s*,/", $configCode)) {
+            $warn("{$const} is not defined in config.local.php.");
+            continue;
+        }
+        if (preg_match("/define\(\s*'" . $const . "'\s*,\s*'([^']*)'/", $configCode, $m) && trim($m[1]) === '') {
+            $warn("{$const} is defined but empty in config.local.php.");
+            continue;
+        }
+        if (preg_match("/define\(\s*'" . $const . "'\s*,\s*'([^']*)'/", $configCode, $m)) {
+            $value = $m[1];
+            if (str_starts_with($value, 'u') === false && $const !== 'DB_PASS') {
+                $warn("{$const} is '{$value}' - hPanel prefixes both the database name and the user with your u-account.");
+            } elseif ($const === 'DB_PASS' && str_contains($value, 'your-') || str_contains($value, 'paste-')) {
+                $warn("{$const} still holds the template placeholder.");
+            } else {
+                $ok("{$const} is set in config.local.php");
+            }
+        }
+    }
 }
 
 // A real password baked into config.php would be a leak risk.
@@ -356,20 +441,6 @@ try {
 // ------------------------------------------------------------------
 // Report
 // ------------------------------------------------------------------
-echo "\n";
-echo str_repeat('=', 64) . "\n";
-foreach ($oks as $m) {
-    echo "  OK    {$m}\n";
-}
-foreach ($warnings as $m) {
-    echo "  WARN  {$m}\n";
-}
-foreach ($errors as $m) {
-    echo "  ERROR {$m}\n";
-}
-echo str_repeat('=', 64) . "\n";
-echo sprintf("%d ok, %d warning(s), %d error(s)\n", count($oks), count($warnings), count($errors));
-
-ob_end_flush();
+$printReport(false);
 
 exit($errors === [] ? 0 : 1);

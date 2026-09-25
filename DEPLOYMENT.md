@@ -128,10 +128,11 @@ prefixed names exactly as shown.
 
 ## 3. Add the credentials
 
-Edit **`app/config/config.local.php`** (shipped, all lines commented out) and uncomment
-what you need:
+Create **`app/config/config.local.php`**. Start from the tracked template
+`app/config/config.local.example.php`, which contains no secrets:
 
 ```php
+<?php
 define('DB_HOST', 'localhost');
 define('DB_PORT', '3306');
 define('DB_NAME', 'u123456789_radha_rani');   // prefixed name from hPanel
@@ -139,8 +140,24 @@ define('DB_USER', 'u123456789_radha_rani');   // prefixed name from hPanel
 define('DB_PASS', 'the-password-hPanel-generated');
 ```
 
-This file is loaded before the defaults and overrides them, so upgrades never
-overwrite your credentials. Never put the password in `config.php`.
+### Why upgrades cannot overwrite it
+
+`app/config/config.local.php` is listed in `.gitignore`, so it is not in the
+repository and **no `git push` or `git pull` can modify or delete it**. It is
+loaded before the defaults in `config.php`, so it keeps winning over them.
+
+Two consequences worth knowing:
+
+- Because Git never sees the file, **Git also cannot restore it.** If a redeploy
+  ever removes it, recreate it from `app/config/config.local.example.php`. Keep a
+  copy of the password somewhere safe outside the repository.
+- `tools/deploy-check.php` reports the file as missing, and warns per constant
+  when `DB_NAME`/`DB_USER`/`DB_PASS` are undefined, empty, or still set to the
+  template placeholder. Run it after any redeploy.
+
+Precedence is **environment variable > `config.local.php` > built-in default**.
+When the environment supplies `DB_NAME` (Docker, CI), `config.local.php` is
+skipped entirely.
 
 ### If the app is in a sub-folder
 
@@ -312,23 +329,23 @@ Then confirm in a browser:
 | `Unknown data type: 'TIMESTAM...'` on import | phpMyAdmin's SQL linter mangling a `TIMESTAMP` column | Already fixed in `database/init.sql` — use `DATETIME` throughout. Pull the latest commit, or use the **Import** tab rather than pasting into the SQL box |
 | Import "succeeds" but login says invalid credentials | Schema imported without the owner row | Re-import `database/init.sql`; it seeds the owner (`owner` / `Owner@123`) — then change the password in Profile |
 
-### Blank 500 pages: the two built-in diagnostic pages
+### Blank 500 pages
 
-The error page is deliberately vague, because in production a raw exception message
-can leak the database name and hostname. But while you are still setting up, the app
-will show you the actual reason. Both pages appear **only** when `APP_ENV` is not
-`production`; set `define('APP_ENV', 'production');` in `config.local.php` once you
-are finished and both fall back to a plain 500 with no detail.
+The error page is deliberately vague, because a raw exception message would leak
+the database name, hostname and file paths to any visitor. Details go to
+`storage/logs/app.log` instead — read it with hPanel → File Manager →
+`storage/logs/app.log`. It records, in order:
 
-| Page you see | What it means | What to do |
-|---|---|---|
-| **"Cannot connect to the database"** | MySQL refused the connection. The driver message and the exact `user@host:port/db` target are printed, with no password. | Create `app/config/config.local.php` with the four `DB_*` values from hPanel → Databases, then import `database/init.sql` (section 4). |
-| **"Application error"** + exception name | The connection worked but a query failed — usually a table that does not exist because the schema was never imported. A stack trace is available under a fold. | Import the schema, and check `DB_NAME` matches the database you imported into. |
-
-Both failures are also appended to `storage/logs/app.log`, which is the authoritative
-record. Read it with hPanel → File Manager → `storage/logs/app.log`.
+- `Database connection failed: ...` plus the `user@host:port/db` target — the
+  database refused the connection, so create `app/config/config.local.php` with
+  the four `DB_*` values from hPanel → Databases (section 3).
+- `[PDOException] ...` with file and line — the connection worked but a query
+  failed, usually a missing table, so import `database/init.sql` (section 4).
 
 A useful tell: **if the login form renders but submitting it returns 500**, the failure
 is at the database, not the page. The form itself needs no database; the first thing
 the POST handler does is query the login-throttle table.
+
+`Access denied for user 'X'@'localhost' (using password: NO)` means `config.local.php`
+was not found or `DB_PASS` was left out — the app fell back to its built-in defaults.
 

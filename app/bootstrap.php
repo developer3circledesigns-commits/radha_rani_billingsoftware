@@ -14,8 +14,11 @@ if (file_exists($composerAutoload)) {
 
 require_once __DIR__ . '/config/config.php';
 
-// Session (secure bootstrap)
-if (session_status() === PHP_SESSION_NONE) {
+// Session (secure bootstrap).
+// CLI tools load this file too, but must not start a session: it emits
+// "headers already sent" warnings as soon as the tool prints anything, and a
+// maintenance script has no logged-in visitor to keep state for.
+if (PHP_SAPI !== 'cli' && session_status() === PHP_SESSION_NONE) {
     session_name(SESSION_NAME);
     session_set_cookie_params([
         'lifetime' => 0,
