@@ -1,0 +1,160 @@
+# ===================================================================
+# Radha Rani Hotel Portal - .gitignore
+# ===================================================================
+# Two rules drive everything below:
+#   1. Never commit credentials, real bill PDFs, or logs.
+#   2. Never ignore the vendored FRONTEND libraries in
+#      public/assets/vendor/ - they are required for the site to render.
+#      Note the leading slash on "/vendor/" for exactly that reason.
+# ===================================================================
+
+
+# -------------------------------------------------------------------
+# 1. Secrets and local configuration  (MOST IMPORTANT SECTION)
+# -------------------------------------------------------------------
+# Contains the hPanel database host / name / user / password. It is a
+# template in the repo with every line commented out, but once someone
+# fills in real credentials and commits, the password is in git history
+# forever. Keep it untracked.
+app/config/config.local.php
+
+# Any .env file, in case one is added later. The app does not use one
+# today, but these rules guarantee a mistake can never be committed or
+# served.
+.env
+.env.*
+!.env.example
+
+# Local overrides of the shipped .htaccess / .user.ini
+public/.htaccess.local
+public/.user.ini.local
+*.local.php
+
+# TLS / SSH / deployment keys
+*.pem
+*.key
+*.crt
+id_rsa
+id_rsa.pub
+known_hosts
+.netrc
+.npmrc
+.docker/
+deploy.key
+
+
+# -------------------------------------------------------------------
+# 2. Runtime storage - bill PDFs, archives and logs
+# -------------------------------------------------------------------
+# Real customer bill PDFs must never enter the repository: they are
+# private financial documents and they are large binaries that would
+# bloat every clone. The directories are kept (via .gitkeep) and the app
+# recreates the deeper branch/date folders on demand - see
+# BillStorage::ensureStorageTree() and the LOG_PATH mkdir in
+# app/bootstrap.php.
+/storage/uploads/*
+!/storage/uploads/.gitkeep
+/storage/archive/*
+!/storage/archive/.gitkeep
+/storage/archive/bills/*
+!/storage/archive/bills/.gitkeep
+/storage/logs/*
+!/storage/logs/.gitkeep
+
+# Belt and braces: never track a PDF or a log anywhere in the tree.
+*.pdf
+*.log
+
+
+# -------------------------------------------------------------------
+# 3. Database volume
+# -------------------------------------------------------------------
+# Local MySQL data directory used by docker compose. Never version it.
+/db/*
+!/db/.gitkeep
+
+
+# -------------------------------------------------------------------
+# 4. Dependencies
+# -------------------------------------------------------------------
+# Root-only: this is where Composer would install. The leading slash is
+# deliberate so it does NOT catch public/assets/vendor/, which holds the
+# committed Bootstrap CSS/JS the site depends on.
+#
+# This project currently ships no Composer dependencies, so composer.json
+# and composer.lock are deliberately NOT ignored - if they are ever added
+# they belong in the repository. Only the installed packages are ignored.
+/vendor/*
+!/vendor/.gitkeep
+
+
+# -------------------------------------------------------------------
+# 5. Operating system noise
+# -------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+
+# -------------------------------------------------------------------
+# 6. IDE and editor settings
+# -------------------------------------------------------------------
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.\#*
+\#*\#
+
+
+# -------------------------------------------------------------------
+# 7. Logs, caches and temporary files
+# -------------------------------------------------------------------
+*.log
+.cache/
+.php-cs-fixer.cache
+.phpunit.result.cache
+tmp/
+temp/
+coverage/
+*.tmp
+*.bak
+*.old
+*.orig
+*.save
+*.rej
+
+
+# -------------------------------------------------------------------
+# 8. Deployment / upload leftovers
+# -------------------------------------------------------------------
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+deploy*.txt
+*.sql.gz
+
+
+# -------------------------------------------------------------------
+# 9. Files that SHOULD be committed - listed here as documentation
+# -------------------------------------------------------------------
+# Deliberately NOT ignored, because the site breaks without them:
+#   .htaccess, public/.htaccess, storage/.htaccess   security rules
+#   public/.user.ini                                PHP limits
+#   public/assets/vendor/                           Bootstrap CSS/JS
+#   app/, database/, docker/, tools/, public/       application code
+#   DEPLOYMENT.md, README.md                        documentation
