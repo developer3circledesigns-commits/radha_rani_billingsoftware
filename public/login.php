@@ -270,13 +270,17 @@ if (isPost()) {
             background: #fff;
             border: 1px solid var(--l1-line);
             border-top: 3px solid var(--l1-gold);
-            border-radius: 16px;
+            border-radius: 0;
             box-shadow: 0 24px 60px rgba(33, 42, 52, 0.12);
             padding: clamp(20px, 3.2vh, 38px) 36px clamp(18px, 2.6vh, 32px);
         }
         .l1-card h2 { font-family: "Cormorant Garamond", Georgia, serif; font-size: 1.65rem; font-weight: 600; margin: 0 0 6px; }
         .l1-card-sub { font-size: 0.88rem; color: var(--l1-muted); margin-bottom: 26px; }
         .l1-card .form-label { font-size: 0.82rem; font-weight: 600; }
+        .l1-card .form-control,
+        .l1-card .input-group-text,
+        .l1-card .btn,
+        .l1-card .alert { border-radius: 0; }
         .l1-card .form-control {
             padding: 10px 14px;
             border-color: var(--l1-line);
@@ -446,10 +450,10 @@ if (isPost()) {
             </button>
         </form>
 
-        <p class="l1-help">New branch admin? <a href="<?= url('login.php') ?>">Contact the owner</a> for your credentials.</p>
+        <!-- <p class="l1-help">New branch admin? <a href="<?= url('login.php') ?>">Contact the owner</a> for your credentials.</p> -->
     </div>
 
-    <div class="l1-after">
+    <!-- <div class="l1-after">
         <div class="l1-after-row">
             <i class="bi bi-shield-lock"></i>
             <span><strong>Throttled &amp; logged</strong><small>Failed attempts lock an account for <?= LOGIN_LOCKOUT_MINUTES ?> minutes.</small></span>
@@ -460,7 +464,7 @@ if (isPost()) {
         </div>
     </div>
 
-    <p class="l1-foot">© <?= date('Y') ?> <?= e(APP_ORG) ?> · Secure document portal</p>
+    <p class="l1-foot">© <?= date('Y') ?> <?= e(APP_ORG) ?> · Secure document portal</p> -->
 </main>
 
 <script src="<?= url('assets/js/app.js') ?>"></script>
