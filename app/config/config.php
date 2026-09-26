@@ -120,6 +120,23 @@ define('LOGIN_MAX_ATTEMPTS', (int) env('LOGIN_MAX_ATTEMPTS', 5));
 define('LOGIN_LOCKOUT_MINUTES', (int) env('LOGIN_LOCKOUT_MINUTES', 15));
 
 // ------------------------------------------------------------------
+// Security event log (Wazuh feed)
+//
+// One JSON object per line, appended by app/helpers/SecurityLogger.php and
+// tailed by the Wazuh Windows agent. It sits in LOG_PATH, which is already
+// unreachable over HTTP (denied by .htaccess in the project root, in public/
+// and in storage/, and by nginx.conf in the container stack).
+//
+// SECURITY_LOG_ENABLED is the kill switch for the whole integration: set it
+// to 0 - here, or as an environment variable - and every security event is
+// dropped before it reaches the filesystem. The application is unaffected.
+// ------------------------------------------------------------------
+define('SECURITY_LOG_ENABLED', env('SECURITY_LOG_ENABLED', '1') !== '0');
+define('SECURITY_LOG_FILE', LOG_PATH . '/security.log');
+// Rotate at 20 MB to keep security.log.1 bounded. Set 0 to disable rotation.
+define('SECURITY_LOG_MAX_BYTES', (int) env('SECURITY_LOG_MAX_BYTES', 20971520));
+
+// ------------------------------------------------------------------
 // Timezone / locale
 // ------------------------------------------------------------------
 date_default_timezone_set(env('APP_TIMEZONE', 'Asia/Kolkata'));

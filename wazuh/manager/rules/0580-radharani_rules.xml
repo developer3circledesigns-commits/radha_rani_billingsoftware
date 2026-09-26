@@ -1,0 +1,407 @@
+<!--
+  Wazuh custom rules - Radha Rani Hotel Portal
+  =====================================================================
+  Installed on the MANAGER at:
+      /var/ossec/etc/ruleset/rules/0580-radharani_rules.xml
+
+  Tuning philosophy (see WAZUH_PHP_INTEGRATION.md section "Alerting noise")
+  ====================================================================
+  A single failed login is NOT an incident. On this portal a fat-fingered
+  password or a hotel clerk mistyping a username is completely routine, and
+  on a busy day it happens dozens of times. Alerting on each one trains staff
+  to ignore the channel, which costs far more than the missed signal.
+
+  So the pattern here is:
+    * one event  -> low level, searchable, not an alert you must triage
+    * a pattern  -> real alert, correlated on the field that matters
+    * a high-value event (role change, forced purge, log pipeline failure)
+                  -> alerts on its own, no correlation needed
+
+  Rule IDs use 100100-100199, a range that is well clear of Wazuh's shipped
+  rules and of the stock local rules, so nothing can collide on upgrade.
+
+  Every rule carries the MITRE ATT&CK mapping so the portal's alerts line up
+  with the rest of the Wazuh console.
+-->
+
+<group name="radha_rani,">
+
+    <!-- ================================================================
+         1. Authentication
+         ================================================================ -->
+
+    <rule id="100100" level="3">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">login_failed</field>
+        <description>Radha Rani: failed login attempt</description>
+        <group>authentication_failures,</group>
+        <mitre><id>T1110</id></mitre>
+    </rule>
+
+    <rule id="100101" level="2">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">login_success</field>
+        <description>Radha Rani: successful login</description>
+        <group>authentication_success,</group>
+        <mitre><id>T1078</id></mitre>
+    </rule>
+
+    <rule id="100102" level="8">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">account_locked</field>
+        <description>Radha Rani: account locked after repeated failures</description>
+        <group>authentication_failures,</group>
+        <mitre><id>T1110</id></mitre>
+    </rule>
+
+    <rule id="100103" level="7">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">rate_limit_triggered</field>
+        <description>Radha Rani: login rate limit triggered</description>
+        <group>authentication_failures,</group>
+        <mitre><id>T1110</id></mitre>
+    </rule>
+
+    <!--
+      Credential stuffing against one account. Keyed on srcuser, not just
+      srcip: it is the account under attack that matters, and it still fires
+      correctly when many hosts rotate through one username.
+    -->
+    <rule id="100104" level="10" frequency="5" timeframe="300">
+        <if_matched>100100</if_matched>
+        <same_user/>
+        <description>Radha Rani: 5 failed logins for one account in 5 minutes</description>
+        <mitre><id>T1110</id></mitre>
+    </rule>
+
+    <rule id="100105" level="12" frequency="10" timeframe="300">
+        <if_matched>100100</if_matched>
+        <same_user/>
+        <description>Radha Rani: 10 failed logins for one account in 5 minutes - brute force in progress</description>
+        <mitre><id>T1110</id></mitre>
+    </rule>
+
+    <rule id="100106" level="9" frequency="5" timeframe="120">
+        <if_matched>100100</if_matched>
+        <same_srcip/>
+        <description>Radha Rani: 5 failed logins from one IP in 2 minutes</description>
+        <mitre><id>T1110</id></mitre>
+    </rule>
+
+    <!--
+      Username enumeration: many DIFFERENT accounts tried from one source.
+      This is a different attack from repeated attempts on a single account
+      and the count_distinct is what separates the two.
+    -->
+    <rule id="100107" level="10" frequency="5" timeframe="300">
+        <if_matched_group>authentication_failures,</if_matched_group>
+        <same_srcip/>
+        <count_distinct>srcuser</count_distinct>
+        <description>Radha Rani: 5 different accounts tried from one IP in 5 minutes - username enumeration</description>
+        <mitre><id>T1110</id></mitre>
+    </rule>
+
+    <!--
+      NOTE: a "succeeded right after failures" rule is deliberately absent.
+      Wazuh's frequency element counts prior matches of one rule and cannot
+      ask "was rule A seen recently, and is the event arriving now rule B",
+      so the only way to express it with if_matched + frequency would be
+      frequency=1, which fires on every single failed login and turns the
+      channel into noise. Getting this signal right needs either a
+      correlation rule in a custom analyser or a saved query in the
+      dashboard; see WAZUH_PHP_INTEGRATION.md, "Deliberate gaps".
+    -->
+
+
+    <!-- ================================================================
+         2. Authorization, CSRF and access control
+         ================================================================ -->
+
+    <rule id="100110" level="5">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">unauthorized_access</field>
+        <description>Radha Rani: authentication required but not present</description>
+        <group>access_control,</group>
+    </rule>
+
+    <rule id="100111" level="7">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">forbidden_access</field>
+        <description>Radha Rani: access denied by role permissions</description>
+        <group>access_control,</group>
+        <mitre><id>T1068</id></mitre>
+    </rule>
+
+    <!--
+      Cross-branch access is the portal's most serious logical flaw: a branch
+      admin guessing another branch's record id. It is separated from the
+      generic denial because it means an id is being guessed, not that a
+      page was simply clicked.
+    -->
+    <rule id="100112" level="8">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">sensitive_record_access</field>
+        <description>Radha Rani: cross-branch or unauthorized access to a record was blocked</description>
+        <group>access_control,</group>
+        <mitre><id>T1068</id></mitre>
+    </rule>
+
+    <rule id="100113" level="6">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">csrf_validation_failed</field>
+        <description>Radha Rani: CSRF token validation failed</description>
+        <group>access_control,</group>
+        <mitre><id>T1189</id></mitre>
+    </rule>
+
+    <rule id="100114" level="7">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">suspicious_request</field>
+        <description>Radha Rani: suspicious request rejected</description>
+        <group>access_control,</group>
+        <mitre><id>T1190</id></mitre>
+    </rule>
+
+    <rule id="100115" level="4">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">invalid_input</field>
+        <description>Radha Rani: request rejected by input validation</description>
+        <group>access_control,</group>
+    </rule>
+
+
+    <!-- ================================================================
+         3. Credentials and privilege
+         ================================================================ -->
+
+    <rule id="100120" level="5">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">password_change</field>
+        <description>Radha Rani: password changed</description>
+        <group>credential_change,</group>
+        <mitre><id>T1078</id></mitre>
+    </rule>
+
+    <rule id="100121" level="7">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">password_reset</field>
+        <description>Radha Rani: password reset by an owner</description>
+        <group>credential_change,</group>
+        <mitre><id>T1098</id></mitre>
+    </rule>
+
+    <rule id="100122" level="5">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">password_reset_requested</field>
+        <description>Radha Rani: password reset requested</description>
+        <group>credential_change,</group>
+    </rule>
+
+    <rule id="100123" level="6">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">password_reset_failed</field>
+        <description>Radha Rani: password reset failed</description>
+        <group>credential_change,</group>
+    </rule>
+
+    <!-- Privilege escalation: alerts on its own, no correlation needed. -->
+    <rule id="100124" level="9">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">role_changed</field>
+        <description>Radha Rani: user role or branch assignment changed</description>
+        <group>privilege_change,</group>
+        <mitre><id>T1098</id></mitre>
+    </rule>
+
+    <rule id="100125" level="6">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">user_created</field>
+        <description>Radha Rani: new user account created</description>
+        <group>account_change,</group>
+        <mitre><id>T1136</id></mitre>
+    </rule>
+
+    <rule id="100126" level="5">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">user_updated</field>
+        <description>Radha Rani: user account updated</description>
+        <group>account_change,</group>
+    </rule>
+
+    <rule id="100127" level="7">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">user_deleted</field>
+        <description>Radha Rani: user account deleted</description>
+        <group>account_change,</group>
+        <mitre><id>T1098</id></mitre>
+    </rule>
+
+    <rule id="100128" level="5">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">admin_action</field>
+        <description>Radha Rani: owner administrative action</description>
+        <group>admin_activity,</group>
+    </rule>
+
+    <rule id="100129" level="6">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">admin_settings_changed</field>
+        <description>Radha Rani: portal settings changed by an owner</description>
+        <group>admin_activity,</group>
+    </rule>
+
+
+    <!-- ================================================================
+         4. Records and files
+         ================================================================ -->
+
+    <rule id="100130" level="3">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">record_created</field>
+        <description>Radha Rani: record created</description>
+        <group>data_change,</group>
+    </rule>
+
+    <rule id="100131" level="4">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">record_updated</field>
+        <description>Radha Rani: record updated</description>
+        <group>data_change,</group>
+    </rule>
+
+    <!--
+      Permanent deletion is irreversible. This is deliberately a standalone
+      alert rather than something that needs a pattern to surface.
+    -->
+    <rule id="100132" level="8">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">file_deleted</field>
+        <description>Radha Rani: file permanently deleted</description>
+        <group>data_change,</group>
+        <mitre><id>T1485</id></mitre>
+    </rule>
+
+    <rule id="100133" level="3">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">file_uploaded</field>
+        <field name="result">success</field>
+        <description>Radha Rani: file uploaded and stored</description>
+        <group>data_change,</group>
+    </rule>
+
+    <!--
+      A rejected upload. Routine in itself - people attach the wrong file -
+      so it is kept low, but it is kept at all because the extension that
+      was attempted is the interesting part and the next rule keys on it.
+    -->
+    <rule id="100134" level="5">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">file_uploaded</field>
+        <field name="result">rejected</field>
+        <description>Radha Rani: upload rejected by validation</description>
+        <group>data_change,</group>
+    </rule>
+
+    <!--
+      An executable or script extension aimed at the upload endpoint. The
+      extension is read from the name the client sent and the file never got
+      past validation, so this is an ATTEMPT, and the description says so.
+      It is the single upload case that escalates above the routine level 5.
+    -->
+    <rule id="100135" level="8">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">file_uploaded</field>
+        <field name="result">rejected</field>
+        <field name="file_extension">php</field>
+        <description>Radha Rani: rejected upload attempted with a .php extension - web shell attempt</description>
+        <group>data_change,</group>
+        <mitre><id>T1505.003</id></mitre>
+    </rule>
+
+    <rule id="100136" level="8">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">file_uploaded</field>
+        <field name="result">rejected</field>
+        <field name="file_extension">phtml</field>
+        <description>Radha Rani: rejected upload attempted with a .phtml extension - web shell attempt</description>
+        <group>data_change,</group>
+        <mitre><id>T1505.003</id></mitre>
+    </rule>
+
+    <rule id="100137" level="8">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">file_uploaded</field>
+        <field name="result">rejected</field>
+        <field name="file_extension">phar</field>
+        <description>Radha Rani: rejected upload attempted with a .phar extension - web shell attempt</description>
+        <group>data_change,</group>
+        <mitre><id>T1505.003</id></mitre>
+    </rule>
+
+    <rule id="100138" level="8">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">file_uploaded</field>
+        <field name="result">rejected</field>
+        <field name="file_extension">exe</field>
+        <description>Radha Rani: rejected upload attempted with a .exe extension</description>
+        <group>data_change,</group>
+    </rule>
+
+    <rule id="100139" level="3">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">file_downloaded</field>
+        <description>Radha Rani: file or document downloaded</description>
+        <group>data_access,</group>
+    </rule>
+
+    <rule id="100140" level="3">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">record_restored</field>
+        <description>Radha Rani: record restored from trash</description>
+        <group>data_change,</group>
+    </rule>
+
+
+    <!-- ================================================================
+         5. Pipeline health
+         ================================================================
+         The security log is evidence, so a failure to write it is itself an
+         alert. Silently losing events would leave the dashboard looking
+         healthy simply because nothing was arriving. -->
+
+    <rule id="100150" level="7">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">security_logging_error</field>
+        <description>Radha Rani: the security logger could not write an event</description>
+        <group>pipeline,</group>
+    </rule>
+
+    <rule id="100151" level="2">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">log_rotated</field>
+        <description>Radha Rani: security log rotated</description>
+        <group>pipeline,</group>
+    </rule>
+
+    <rule id="100152" level="5">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">application_error</field>
+        <description>Radha Rani: application error</description>
+        <group>pipeline,</group>
+    </rule>
+
+    <rule id="100153" level="7">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">database_error</field>
+        <description>Radha Rani: database connectivity error</description>
+        <group>pipeline,</group>
+    </rule>
+
+    <rule id="100154" level="8">
+        <decoded_as>json</decoded_as>
+        <field name="event_type">unexpected_exception</field>
+        <description>Radha Rani: unhandled exception</description>
+        <group>pipeline,</group>
+    </rule>
+
+</group>

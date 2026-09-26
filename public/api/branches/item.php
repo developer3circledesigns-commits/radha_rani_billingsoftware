@@ -14,7 +14,7 @@ $id = (int) (get('id') ?: (int) ($_POST['id'] ?? 0));
 switch (method()) {
     case 'PUT':
     case 'POST':
-        if (!csrf_verify()) api_error('Session token expired.', 419);
+        if (!csrf_verify()) csrf_fail_api('Session token expired.');
         $branch = $id ? Branch::find($id) : null;
         if (!$branch) api_error('Branch not found.', 404);
 
@@ -40,10 +40,22 @@ switch (method()) {
 
         Branch::update($id, $data);
         log_activity((int) $user['id'], null, 'BRANCH_UPDATED', 'branch', $id, 'API: updated branch ' . $data['branch_name']);
+
+        // Deactivating a branch terminates the sessions of every admin bound to
+        // it, so it is an administrative action as well as a record change.
+        if ($branch['status'] === 'active' && $data['status'] === 'inactive') {
+            SecurityLogger::log(SecurityLogger::ADMIN_ACTION, [
+                'admin_operation' => 'branch_deactivated',
+                'entity_type'     => 'branch',
+                'entity_id'       => (int) $id,
+                'target_branch'   => $data['branch_code'],
+                'result'          => 'success',
+            ]);
+        }
         api_ok(null, 'Branch updated.');
 
     case 'DELETE':
-        if (!csrf_verify()) api_error('Session token expired.', 419);
+        if (!csrf_verify()) csrf_fail_api('Session token expired.');
         $branch = $id ? Branch::find($id) : null;
         if (!$branch) api_error('Branch not found.', 404);
         Branch::softDelete($id);

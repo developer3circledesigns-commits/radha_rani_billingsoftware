@@ -18,6 +18,11 @@ if (isPost()) {
     $username = trim((string) post('login', ''));
     $password = (string) post('password', '');
 
+    // Attribute this request to the submitted identifier before anything can
+    // fail, so even the earliest rejection below carries who was targeted.
+    // The password is never touched by the logger.
+    SecurityLogger::hintActor($username !== '' ? $username : null);
+
     if (!csrf_verify()) {
         csrf_fail();
     }
@@ -32,6 +37,11 @@ if (isPost()) {
     }
 
     if ($username === '' || $password === '') {
+        SecurityLogger::log(SecurityLogger::INVALID_INPUT, [
+            'reason'      => 'empty_credentials_field',
+            'field'       => $username === '' ? 'login' : 'password',
+            'result'      => 'rejected',
+        ]);
         flash_set('danger', 'Please enter both login ID and password.');
         $old['login'] = $username;
         redirect('login.php');
@@ -61,6 +71,11 @@ if (isPost()) {
         User::updateLastLogin((int) $userRow['id']);
         throttle_reset($username);
 
+        // Identifies the account for any later event in this request.
+        SecurityLogger::hintActor($userRow['username'], (int) $userRow['id'], $userRow['role']);
+
+        // log_activity('LOGIN') is mirrored into security.log as
+        // login_success by security_log_from_audit_action().
         log_activity((int) $userRow['id'], $userRow['branch_id'], 'LOGIN', 'user', (int) $userRow['id'], 'Login successful');
 
         flash_set('success', 'Welcome back, ' . $userRow['name'] . '!');
@@ -68,9 +83,20 @@ if (isPost()) {
     }
 
     // Failed
-    $attempts = 0;
+    //
+    // When the identifier matches a real account the LOGIN_FAILED audit row is
+    // mirrored to security.log. When it does NOT match anything there is no
+    // audit row at all, and that gap is exactly what an account-enumeration
+    // sweep looks like - so the event is emitted explicitly here.
     if ($userRow) {
         log_activity((int) $userRow['id'], $userRow['branch_id'], 'LOGIN_FAILED', 'user', (int) $userRow['id'], 'Invalid credentials');
+    } else {
+        SecurityLogger::authFailed(
+            SecurityLogger::LOGIN_FAILED,
+            $username,
+            'unknown_identifier',
+            null
+        );
     }
     $attempts = throttle_register_failure($username);
 

@@ -11,13 +11,21 @@ if (!isPost()) {
 }
 
 if (!csrf_verify()) {
-    api_error('Session token expired. Please refresh the page and try again.', 419);
+    csrf_fail_api('Session token expired. Please refresh the page and try again.');
 }
 
 $login = trim((string) ($_POST['login'] ?? jsonBody()['login'] ?? ''));
 $password = (string) ($_POST['password'] ?? jsonBody()['password'] ?? '');
 
+// Attribute the request to the submitted identifier before any rejection.
+SecurityLogger::hintActor($login !== '' ? $login : null);
+
 if ($login === '' || $password === '') {
+    SecurityLogger::log(SecurityLogger::INVALID_INPUT, [
+        'reason' => 'empty_credentials_field',
+        'field'  => $login === '' ? 'login' : 'password',
+        'result' => 'rejected',
+    ]);
     api_error('Login ID and password are required.', 422);
 }
 
@@ -31,15 +39,39 @@ $userRow = User::findByLogin($login);
 if (!$userRow || !password_verify($password, $userRow['password_hash'])) {
     if ($userRow) {
         log_activity((int) $userRow['id'], $userRow['branch_id'], 'LOGIN_FAILED', 'user', (int) $userRow['id'], 'API: invalid credentials');
+    } else {
+        // Same reasoning as the HTML form: an identifier that matches no
+        // account produces no audit row, which is precisely the shape of an
+        // enumeration sweep, so the event is emitted directly.
+        SecurityLogger::authFailed(
+            SecurityLogger::LOGIN_FAILED,
+            $login,
+            'unknown_identifier',
+            null
+        );
     }
     throttle_register_failure($login);
     api_error('Invalid login ID or password.', 401);
 }
 
 if ($userRow['status'] !== 'active') {
+    SecurityLogger::authFailed(
+        SecurityLogger::LOGIN_FAILED,
+        $login,
+        'account_inactive',
+        (int) $userRow['id'],
+        $userRow
+    );
     api_error('This account is inactive. Contact the administrator.', 403);
 }
 if ($userRow['role'] === 'branch_admin' && $userRow['branch_status'] !== 'active') {
+    SecurityLogger::authFailed(
+        SecurityLogger::LOGIN_FAILED,
+        $login,
+        'branch_inactive',
+        (int) $userRow['id'],
+        $userRow
+    );
     api_error('The branch associated with this account is inactive.', 403);
 }
 
@@ -50,6 +82,10 @@ $_SESSION['last_activity'] = time();
 
 User::updateLastLogin((int) $userRow['id']);
 throttle_reset($login);
+
+SecurityLogger::hintActor($userRow['username'], (int) $userRow['id'], $userRow['role']);
+
+// Mirrored to security.log as login_success.
 log_activity((int) $userRow['id'], $userRow['branch_id'], 'LOGIN', 'user', (int) $userRow['id'], 'API login');
 
 api_ok([

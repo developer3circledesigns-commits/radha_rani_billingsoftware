@@ -25,6 +25,17 @@ if ($isOwner && isPost() && post('action') === 'change_password') {
 
     if (!password_verify($current, $user['password_hash'])) {
         $errors['current_password'] = 'Your current password is incorrect.';
+        // A wrong current password on an authenticated owner account is a
+        // meaningful event, not a form error: it is either a mistake or
+        // someone sitting at a live session trying to escalate. The submitted
+        // values are never logged.
+        SecurityLogger::log(SecurityLogger::PASSWORD_CHANGE, [
+            'user_id'  => (int) $user['id'],
+            'username' => $user['username'],
+            'role'     => $user['role'],
+            'reason'   => 'current_password_mismatch',
+            'result'   => 'failed',
+        ]);
     }
     if (strlen($new) < 8) {
         $errors['new_password'] = 'New password must be at least 8 characters long.';
@@ -35,6 +46,7 @@ if ($isOwner && isPost() && post('action') === 'change_password') {
 
     if (!$errors) {
         User::updatePassword((int) $user['id'], password_hash($new, PASSWORD_DEFAULT));
+        // Mirrored to security.log as password_change.
         log_activity((int) $user['id'], $user['branch_id'], 'PASSWORD_CHANGED', 'user', (int) $user['id'], 'Password changed');
         flash_set('success', 'Your password has been updated.');
         redirect('profile.php');

@@ -39,6 +39,23 @@ if (isPost()) {
         if ($bill && $bill['status'] === 'deleted') {
             $name = $bill['original_filename'];
             Bill::purge($billId);
+            // Purge is irreversible: it removes the stored copies from disk
+            // AND the database blob. Reported explicitly with the file
+            // metadata (never the content) before the log_activity mirror
+            // records the same action as file_deleted.
+            SecurityLogger::log(SecurityLogger::FILE_DELETED, [
+                'user_id'            => (int) $user['id'],
+                'username'           => $user['username'],
+                'role'               => $user['role'],
+                'entity_type'        => 'bill',
+                'entity_id'          => (int) $billId,
+                'branch_id'          => $bill['branch_id'] !== null ? (int) $bill['branch_id'] : null,
+                'original_filename'  => $name,
+                'extension'          => strtolower((string) pathinfo($name, PATHINFO_EXTENSION)),
+                'file_size'          => isset($bill['file_size']) ? (int) $bill['file_size'] : null,
+                'deletion_type'      => 'permanent_purge',
+                'result'             => 'success',
+            ]);
             log_activity((int) $user['id'], $bill['branch_id'], 'BILL_PURGED', 'bill', $billId,
                 'Permanently erased stored copies of bill #' . $billId . ' (' . $name . ')');
             flash_set('success', 'Bill #' . $billId . ' and its stored copies were permanently erased.');

@@ -97,12 +97,45 @@ function csrf_verify(?string $token = null): bool
 
 function csrf_fail(): void
 {
+    csrf_fail_log();
+
     http_response_code(419);
     if (isPost()) {
         api_error('Session token expired. Please refresh the page and try again.', 419);
     }
     require APP_PATH . '/views/errors/419.php';
     exit;
+}
+
+/**
+ * JSON-API counterpart of csrf_fail().
+ *
+ * Every API endpoint used to inline "if (!csrf_verify()) api_error(...419)",
+ * which meant a CSRF rejection in the API was invisible to the SIEM. Routing
+ * them through one function keeps the response byte-for-byte identical while
+ * giving all of them the same reporting.
+ */
+function csrf_fail_api(string $message = 'Session token expired.'): void
+{
+    csrf_fail_log();
+    api_error($message, 419);
+}
+
+/**
+ * Report a CSRF rejection without terminating the request. Used by the
+ * endpoints that answer 419 in their own way.
+ */
+function csrf_fail_log(): void
+{
+    $actor = current_user();
+
+    SecurityLogger::log(SecurityLogger::CSRF_VALIDATION_FAILED, [
+        'user_id'  => $actor['id']       ?? null,
+        'username' => $actor['username'] ?? null,
+        'role'     => $actor['role']     ?? null,
+        'reason'   => 'missing_or_mismatched_csrf_token',
+        'result'   => 'denied',
+    ]);
 }
 
 // ------------------------------------------------------------------

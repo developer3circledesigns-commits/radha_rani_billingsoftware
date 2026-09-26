@@ -1,0 +1,69 @@
+<!--
+  Wazuh custom decoder - Radha Rani Hotel Portal security events
+  ===================================================================
+  Installed on the MANAGER at:
+      /var/ossec/etc/ruleset/decoders/0600-radha-rani-security_decoder.xml
+
+  Why the manager and not the agent: the Windows agent only ships raw lines.
+  Decoding happens in analysisd on the manager, so this file belongs there.
+  Adding a <ruleset> block to the agent's ossec.conf would double-decode.
+
+  How it works
+  ====================================================================
+  Decoder 1 matches this application and hands the line to the built-in
+  JSON_Decoder plugin, which turns every top-level JSON key into a Wazuh
+  field. So event, username, user_id, role, method, uri, result, reason,
+  entity_type, extension, mime_type, file_size, admin_operation and the
+  rest all arrive as queryable fields with no per-field regex to maintain.
+
+  The plugin cannot rename a key, and three of Wazuh's own conventions are
+  needed for correlation and for the standard dashboards:
+
+      JSON key   ->  Wazuh field   why
+      ip         ->  srcip         only srcip is understood by same_srcip
+                                   correlation, "source IP" views and the
+                                   default dashboard panels
+      username   ->  srcuser       canonical "who did it" field
+      event      ->  event_type    event is a reserved concept in analysisd,
+                                   event_type reads correctly in rules
+
+  Decoders 2 to 4 do only that renaming. Each pattern is written without a
+  leading anchor so it is independent of field order in the JSON, and each is
+  written as "key":" so it can never match inside a longer key: the text
+  "username":" also occurs inside "target_username":" only after an
+  underscore, not after a quote, so srcuser can never pick up a target.
+-->
+
+<decoder name="radha-rani-security">
+
+    <prematch>^\{"timestamp":"[^"]*","event":"[^"]*","application":"RADHA_RANI_PORTAL"</prematch>
+    <plugin_decoder>JSON_Decoder</plugin_decoder>
+
+</decoder>
+
+
+<decoder name="radha-rani-security-srcip">
+
+    <parent>radha-rani-security</parent>
+    <regex>"ip":"([^"]*)"</regex>
+    <order>srcip</order>
+
+</decoder>
+
+
+<decoder name="radha-rani-security-srcuser">
+
+    <parent>radha-rani-security-srcip</parent>
+    <regex>"username":"([^"]*)"</regex>
+    <order>srcuser</order>
+
+</decoder>
+
+
+<decoder name="radha-rani-security-eventtype">
+
+    <parent>radha-rani-security-srcuser</parent>
+    <regex>"event":"([^"]*)"</regex>
+    <order>event_type</order>
+
+</decoder>

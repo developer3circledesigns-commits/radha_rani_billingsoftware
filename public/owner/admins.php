@@ -18,7 +18,7 @@ if ($action === 'delete' && isPost()) {
     $admin = $adminId ? User::find($adminId) : null;
     if ($admin && $admin['role'] === 'branch_admin') {
         User::softDelete($adminId);
-        log_activity((int) $user['id'], null, 'ADMIN_DELETED', 'user', $adminId, 'Deleted admin ' . $admin['name']);
+        log_activity((int) $user['id'], null, 'ADMIN_DELETED', 'user', $adminId, 'Deleted admin ' . $admin['name'], $admin);
         flash_set('success', 'Admin account "' . $admin['name'] . '" deleted.');
     }
     redirect('owner/admins.php');
@@ -31,7 +31,19 @@ if ($action === 'status' && isPost()) {
     $admin = $adminId ? User::find($adminId) : null;
     if ($admin && $admin['role'] === 'branch_admin') {
         User::setStatus($adminId, $status);
-        log_activity((int) $user['id'], null, $status === 'active' ? 'ADMIN_ACTIVATED' : 'ADMIN_DISABLED', 'user', $adminId, ucfirst($status) . ' admin ' . $admin['name']);
+        log_activity((int) $user['id'], null, $status === 'active' ? 'ADMIN_ACTIVATED' : 'ADMIN_DISABLED', 'user', $adminId, ucfirst($status) . ' admin ' . $admin['name'], $admin);
+
+        // Disabling an account is a privilege change an investigator needs
+        // attributed, and $admin supplies the affected identity.
+        SecurityLogger::log(SecurityLogger::ADMIN_ACTION, [
+            'admin_operation' => $status === 'active' ? 'admin_activated' : 'admin_disabled',
+            'target_user_id'  => (int) $adminId,
+            'target_username' => $admin['username'],
+            'target_role'     => $admin['role'],
+            'target_branch'   => $admin['branch_id'] !== null ? (int) $admin['branch_id'] : null,
+            'new_status'      => $status,
+            'result'          => 'success',
+        ]);
         flash_set('success', 'Admin "' . $admin['name'] . '" is now ' . $status . '.');
     }
     redirect('owner/admins.php');
@@ -51,7 +63,17 @@ if ($action === 'reset' && isPost()) {
             redirect('owner/admins.php?action=reset&id=' . $adminId);
         }
         User::updatePassword($adminId, password_hash($newPass, PASSWORD_DEFAULT));
-        log_activity((int) $user['id'], null, 'ADMIN_PASSWORD_RESET', 'user', $adminId, 'Reset password for ' . $admin['name']);
+        log_activity((int) $user['id'], null, 'ADMIN_PASSWORD_RESET', 'user', $adminId, 'Reset password for ' . $admin['name'], $admin);
+
+        // An owner resetting someone's password is account takeover by design.
+        // The new password is never logged.
+        SecurityLogger::log(SecurityLogger::ADMIN_ACTION, [
+            'admin_operation' => 'admin_password_reset',
+            'target_user_id'  => (int) $adminId,
+            'target_username' => $admin['username'],
+            'target_role'     => $admin['role'],
+            'result'          => 'success',
+        ]);
         flash_set('success', 'Password reset for "' . $admin['name'] . '".');
     }
     redirect('owner/admins.php');
@@ -105,7 +127,11 @@ if ($action === 'create' && isPost()) {
             'role' => 'branch_admin',
             'status' => 'active',
         ]);
-        log_activity((int) $user['id'], $data['branch_id'], 'ADMIN_CREATED', 'user', $newId, 'Created admin ' . $data['name']);
+        log_activity((int) $user['id'], $data['branch_id'], 'ADMIN_CREATED', 'user', $newId, 'Created admin ' . $data['name'], [
+            'id'       => (int) $newId,
+            'username' => $data['username'],
+            'role'     => 'branch_admin',
+        ]);
         flash_set('success', 'Branch admin "' . $data['name'] . '" created successfully.');
         redirect('owner/admins.php');
     }
@@ -148,7 +174,27 @@ if ($action === 'edit' && isPost()) {
         $editErrors = $errors;
     } else {
         User::update($adminId, $data);
-        log_activity((int) $user['id'], $data['branch_id'], 'ADMIN_UPDATED', 'user', $adminId, 'Updated admin ' . $data['name']);
+        log_activity((int) $user['id'], $data['branch_id'], 'ADMIN_UPDATED', 'user', $adminId, 'Updated admin ' . $data['name'], [
+            'id'       => (int) $adminId,
+            'username' => $data['username'],
+            'role'     => $existing['role'],
+        ]);
+
+        // Moving an admin to a different branch moves their entire data scope,
+        // which in this application IS the privilege boundary - so a branch
+        // change is reported as role_changed, not as a routine profile edit.
+        if ((int) $existing['branch_id'] !== $data['branch_id']) {
+            SecurityLogger::log(SecurityLogger::ROLE_CHANGED, [
+                'target_user_id'    => (int) $adminId,
+                'target_username'   => $data['username'],
+                'target_role'       => $existing['role'],
+                'previous_branch'   => $existing['branch_id'] !== null ? (int) $existing['branch_id'] : null,
+                'new_branch'        => (int) $data['branch_id'],
+                'status_change'     => $existing['status'] . '->' . $data['status'],
+                'reason'            => 'branch_reassignment',
+                'result'            => 'success',
+            ]);
+        }
         flash_set('success', 'Admin updated successfully.');
         redirect('owner/admins.php');
     }
