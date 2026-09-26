@@ -18,8 +18,14 @@
     --rr-cash: #198754;
     --rr-card: #2563eb;
     --rr-sidebar-w: 258px;
+    --rr-sidebar-logo-h: 230px;
     --rr-topbar-h: 64px;
     --rr-radius: 10px;
+    --rr-sidebar-top: #fdfbfa;
+    --rr-sidebar-bottom: #f2e8e2;
+    --rr-sidebar-ink: #3d3134;
+    --rr-sidebar-hover: rgba(109, 26, 54, 0.06);
+    --rr-sidebar-active: rgba(109, 26, 54, 0.11);
 }
 
 /* ---------- Bootstrap brand overrides ---------- */
@@ -84,8 +90,9 @@ body.app-body {
 /* ---------- Sidebar ---------- */
 .app-sidebar {
     width: var(--rr-sidebar-w);
-    background: linear-gradient(180deg, var(--rr-burgundy-dark) 0%, var(--rr-burgundy) 100%);
-    color: rgba(255, 255, 255, 0.82);
+    background: linear-gradient(180deg, var(--rr-sidebar-top) 0%, var(--rr-sidebar-bottom) 100%);
+    color: var(--rr-sidebar-ink);
+    border-right: 1px solid var(--rr-border);
     display: flex;
     flex-direction: column;
     position: fixed;
@@ -103,12 +110,12 @@ body.app-body {
 
 .sidebar-logo {
     width: 100%;
-    height: 148px;
+    height: var(--rr-sidebar-logo-h);
     background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 6px 8px 0;
+    padding: 10px 6px;
     flex-shrink: 0;
 }
 
@@ -117,7 +124,7 @@ body.app-body {
     height: 100%;
     object-fit: contain;
     display: block;
-    filter: brightness(1.35) saturate(1.08);
+    filter: saturate(1.05);
 }
 
 .brand-mark {
@@ -150,18 +157,18 @@ body.app-body {
 }
 
 .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
-.brand-text strong { color: #fff; font-size: 1.02rem; letter-spacing: 0.2px; }
-.brand-text span { color: var(--rr-gold-light); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1px; }
+.brand-text strong { color: var(--rr-ink); font-size: 1.02rem; letter-spacing: 0.2px; }
+.brand-text span { color: var(--rr-burgundy); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1px; }
 
 .sidebar-nav { flex: 1; overflow-y: auto; padding: 14px 12px; }
 .sidebar-nav::-webkit-scrollbar { width: 6px; }
-.sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 4px; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: rgba(109, 26, 54, 0.2); border-radius: 4px; }
 
 .sidebar-section-label {
     font-size: 0.68rem;
     text-transform: uppercase;
     letter-spacing: 1.2px;
-    color: rgba(255, 255, 255, 0.45);
+    color: var(--rr-muted);
     padding: 12px 10px 6px;
     font-weight: 600;
 }
@@ -173,25 +180,26 @@ body.app-body {
     padding: 10px 12px;
     margin-bottom: 2px;
     border-radius: 8px;
-    color: rgba(255, 255, 255, 0.78);
+    color: var(--rr-sidebar-ink);
     text-decoration: none;
     font-size: 0.9rem;
     font-weight: 500;
     transition: background 0.15s ease, color 0.15s ease;
 }
 .sidebar-link i { font-size: 1.05rem; width: 20px; text-align: center; }
-.sidebar-link:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.sidebar-link:hover { background: var(--rr-sidebar-hover); color: var(--rr-burgundy-dark); }
 .sidebar-link.active {
-    background: rgba(255, 255, 255, 0.14);
-    color: #fff;
+    background: var(--rr-sidebar-active);
+    color: var(--rr-burgundy-dark);
+    font-weight: 600;
     box-shadow: inset 3px 0 0 var(--rr-gold);
 }
 
 .sidebar-footer {
     padding: 12px;
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    border-top: 1px solid var(--rr-border);
 }
-.sidebar-footer .text-danger { color: #f6a5b8 !important; }
+.sidebar-footer .text-danger { color: #b4233a !important; }
 
 .sidebar-overlay {
     display: none;
@@ -212,7 +220,7 @@ body.app-body {
 
 .app-topbar {
     height: var(--rr-topbar-h);
-    background: var(--rr-surface);
+    background: var(--rr-sidebar-top);
     border-bottom: 1px solid var(--rr-border);
     display: flex;
     align-items: center;
@@ -235,10 +243,10 @@ body.app-body {
     display: inline-flex; align-items: center; justify-content: center;
     font-size: 1.15rem;
 }
-.btn-icon:hover { background: var(--rr-bg); }
+.btn-icon:hover { background: var(--rr-sidebar-bottom); }
 
 .topbar-branch {
-    background: var(--rr-bg);
+    background: rgba(255, 255, 255, 0.72);
     border: 1px solid var(--rr-border);
     border-radius: 8px;
     padding: 6px 12px;

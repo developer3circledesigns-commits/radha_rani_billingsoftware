@@ -193,7 +193,7 @@ if (isPost()) {
             text-decoration: none;
         }
         .l1-logo img {
-            width: clamp(84px, 16vh, 150px); height: clamp(84px, 16vh, 150px);
+            width: clamp(100px, 16vh, 200px); height: clamp(100px, 16vh, 200px);
             object-fit: contain;
             background: transparent;
             filter: brightness(1.2) saturate(1.15) drop-shadow(0 1px 5px rgba(201, 162, 75, 0.3));
@@ -406,9 +406,7 @@ if (isPost()) {
 <!-- ===================== LEFT: BRAND PANEL ===================== -->
 <aside class="l1-brand">
     <div class="l1-nav">
-        <a class="l1-logo" href="<?= url('login.php') ?>">
-            <img src="<?= url('assets/images/logo.png') ?>" alt="Radha Rani Hotel logo">
-        </a>
+        
         <nav class="l1-nav-links" aria-label="Portal links">
             <!-- <a href="#portal">The Portal</a> -->
             <a href="<?= url('login.php') ?>" class="l1-cta">Sign in</a>
@@ -442,6 +440,9 @@ if (isPost()) {
 
 <!-- ===================== RIGHT: SIGN IN ===================== -->
 <main class="l1-panel">
+    <a class="l1-logo" href="<?= url('login.php') ?>">
+            <img src="<?= url('assets/images/logo.png') ?>" alt="Radha Rani Hotel logo">
+        </a>
     <div class="l1-card">
         <h2>Sign in</h2>
         <p class="l1-card-sub">Use your portal credentials below.</p>
