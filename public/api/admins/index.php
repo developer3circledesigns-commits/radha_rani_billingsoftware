@@ -14,7 +14,7 @@ if (method() === 'GET') {
 }
 
 if (method() === 'POST') {
-    if (!csrf_verify()) api_error('Session token expired.', 419);
+    if (!csrf_verify()) csrf_fail_api('Session token expired.');
     $data = jsonBody() ?: $_POST;
     $branchId = (int) ($data['branch_id'] ?? 0);
     if (!$branchId || !Branch::find($branchId)) api_error('Select a valid branch.', 422);
@@ -42,7 +42,11 @@ if (method() === 'POST') {
         'role'          => 'branch_admin',
         'status'        => ($data['status'] ?? 'active') === 'inactive' ? 'inactive' : 'active',
     ]);
-    log_activity((int) $user['id'], $branchId, 'ADMIN_CREATED', 'user', $newId, 'API: created admin ' . $data['name']);
+    log_activity((int) $user['id'], $branchId, 'ADMIN_CREATED', 'user', $newId, 'API: created admin ' . $data['name'], [
+        'id'       => (int) $newId,
+        'username' => $username,
+        'role'     => 'branch_admin',
+    ]);
     api_ok(['id' => $newId], 'Admin created.');
 }
 

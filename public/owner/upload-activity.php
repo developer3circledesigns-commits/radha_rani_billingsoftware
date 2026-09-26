@@ -16,7 +16,21 @@ if (isPost() && get('action') === 'delete') {
     $bill = $billId ? Bill::find($billId) : null;
     if ($bill) {
         Bill::softDelete($billId);
-        log_activity((int) $user['id'], $bill['branch_id'], 'BILL_DELETED', 'bill', $billId, 'Deleted bill #' . $billId . ' (' . $bill['original_filename'] . ')');
+        // Metadata only. The document name and size are enough to identify the
+    // record; the content is never read and never logged.
+    SecurityLogger::log(SecurityLogger::RECORD_DELETED, [
+        'entity_type'       => 'bill',
+        'entity_id'         => (int) $billId,
+        'branch_id'         => (int) $bill['branch_id'],
+        'payment_type'      => $bill['payment_type'],
+        'business_date'     => $bill['business_date'],
+        'original_filename' => $bill['original_filename'],
+        'file_size'         => (int) $bill['file_size'],
+        'deletion_type'     => 'soft_delete',
+        'result'            => 'success',
+    ]);
+
+    log_activity((int) $user['id'], $bill['branch_id'], 'BILL_DELETED', 'bill', $billId, 'Deleted bill #' . $billId . ' (' . $bill['original_filename'] . ')');
         flash_set('success', 'Bill moved to Recently Deleted. It can be restored for ' . Bill::retentionDays() . ' day(s).');
     }
     $keep = [];

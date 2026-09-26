@@ -11,15 +11,27 @@ if (!isPost()) {
 }
 
 if (!check_authentication()) {
+    SecurityLogger::denied(
+        SecurityLogger::UNAUTHORIZED_ACCESS,
+        'no_valid_session',
+        null,
+        ['required_auth' => 'branch_admin', 'endpoint' => 'bills_upload']
+    );
     api_error('Authentication required. Please sign in.', 401);
 }
 
 if (!csrf_verify()) {
-    api_error('Session token expired. Please refresh the page and try again.', 419);
+    csrf_fail_api('Session token expired. Please refresh the page and try again.');
 }
 
 $user = current_user();
 if (($user['role'] ?? '') !== 'branch_admin') {
+    SecurityLogger::denied(
+        SecurityLogger::FORBIDDEN_ACCESS,
+        'role_not_permitted',
+        $user,
+        ['required_role' => 'branch_admin', 'endpoint' => 'bills_upload']
+    );
     api_error('You are not authorized to upload bills.', 403);
 }
 
@@ -83,6 +95,18 @@ $origName = sanitize_filename($_FILES['pdf_file']['name']);
 $file = $_FILES['pdf_file'];
 $validation = PdfValidator::validate($file, $origName);
 if (!$validation['ok']) {
+    // A rejected upload is still an upload attempt and is worth an analyst
+    // seeing: repeated failures against the PDF-only allow-list are how a
+    // probe for an executable upload looks from the server side. Metadata
+    // only - the file is never read here and never described further.
+    SecurityLogger::fileUploaded(
+        $file,
+        $origName,
+        'rejected',
+        'rejected',
+        $user,
+        ['reason' => 'pdf_validation_failed', 'branch_id' => (int) $user['branch_id']]
+    );
     api_error(implode(' ', $validation['errors']), 422, ['pdf_file' => $validation['errors']]);
 }
 
@@ -156,6 +180,23 @@ if (!$fileSaved) {
     log_activity((int) $user['id'], (int) $branch['id'], 'BILL_FS_SAVE_FAILED', 'bill', $billId,
         'Folder copy could not be written for ' . $origName . '; bill stored in database only.');
 }
+
+// File uploaded successfully. The destination is reported as a category, never
+// a full path, so the event does not disclose the storage layout; the bill id
+// is the stable identifier an investigator actually needs.
+SecurityLogger::fileUploaded(
+    $file,
+    $storedName,
+    $paymentType,
+    'success',
+    $user,
+    [
+        'branch_id'     => (int) $branch['id'],
+        'bill_id'       => (int) $billId,
+        'payment_type'  => $paymentType,
+        'business_date' => $businessDate,
+    ]
+);
 
 log_activity((int) $user['id'], (int) $branch['id'], 'BILL_UPLOADED', 'bill', $billId,
     'Uploaded ' . ($paymentType === 'cash' ? 'Cash' : 'Card') . ' bill for ' . $businessDate . ': ' . $origName);

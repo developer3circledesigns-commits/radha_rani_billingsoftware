@@ -20,7 +20,7 @@ switch (method()) {
 
     case 'PUT':
     case 'POST':
-        if (!csrf_verify()) api_error('Session token expired.', 419);
+        if (!csrf_verify()) csrf_fail_api('Session token expired.');
         $data = jsonBody() ?: $_POST;
         $name     = trim((string) ($data['name'] ?? $admin['name']));
         $email    = strtolower(trim((string) ($data['email'] ?? $admin['email'])));
@@ -46,14 +46,32 @@ switch (method()) {
             'username'  => $username,
             'status'    => $status,
         ]);
-        log_activity((int) $user['id'], $branchId, 'ADMIN_UPDATED', 'user', $id, 'API: updated admin ' . $name);
+        log_activity((int) $user['id'], $branchId, 'ADMIN_UPDATED', 'user', $id, 'API: updated admin ' . $name, [
+            'id'       => (int) $id,
+            'username' => $username,
+            'role'     => $admin['role'],
+        ]);
+
+        // Branch reassignment changes this admin's entire data scope, which in
+        // this application is the privilege boundary.
+        if ((int) $admin['branch_id'] !== $branchId) {
+            SecurityLogger::log(SecurityLogger::ROLE_CHANGED, [
+                'target_user_id'  => (int) $id,
+                'target_username' => $username,
+                'target_role'     => $admin['role'],
+                'previous_branch' => $admin['branch_id'] !== null ? (int) $admin['branch_id'] : null,
+                'new_branch'      => $branchId,
+                'reason'          => 'branch_reassignment',
+                'result'          => 'success',
+            ]);
+        }
         api_ok(null, 'Admin updated.');
         break;
 
     case 'DELETE':
-        if (!csrf_verify()) api_error('Session token expired.', 419);
+        if (!csrf_verify()) csrf_fail_api('Session token expired.');
         User::softDelete($id);
-        log_activity((int) $user['id'], $admin['branch_id'], 'ADMIN_DELETED', 'user', $id, 'API: deleted admin ' . $admin['name']);
+        log_activity((int) $user['id'], $admin['branch_id'], 'ADMIN_DELETED', 'user', $id, 'API: deleted admin ' . $admin['name'], $admin);
         api_ok(null, 'Admin deleted.');
         break;
 

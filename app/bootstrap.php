@@ -35,6 +35,7 @@ require_once __DIR__ . '/helpers/Database.php';
 require_once __DIR__ . '/helpers/functions.php';
 require_once __DIR__ . '/helpers/view.php';
 require_once __DIR__ . '/helpers/BillStorage.php';
+require_once __DIR__ . '/helpers/SecurityLogger.php';
 require_once __DIR__ . '/middleware/auth.php';
 require_once __DIR__ . '/models/Branch.php';
 require_once __DIR__ . '/models/User.php';
@@ -54,8 +55,22 @@ function bootstrap_error_handler(int $severity, string $message, string $file, i
 {
     $log = sprintf("[%s] %s in %s:%d%s", date('Y-m-d H:i:s'), $message, $file, $line, PHP_EOL);
     @file_put_contents(LOG_PATH . '/app.log', $log, FILE_APPEND);
-    if (APP_ENV !== 'production') {
-        // still render, but the caller will handle display
+
+    // Feed the SIEM too. Only warnings and above: a suppressed notice such as
+    // an @-silenced call is diagnostic noise, not a security event, and
+    // forwarding it would train an analyst to ignore application_error.
+    if ((error_reporting() & $severity) === $severity
+        && in_array($severity, [E_WARNING, E_USER_WARNING, E_ERROR, E_USER_ERROR, E_RECOVERABLE_ERROR], true)
+    ) {
+        SecurityLogger::log(SecurityLogger::APPLICATION_ERROR, [
+            'error_type'  => 'php_error',
+            'severity_id' => $severity,
+            'error_name'  => php_error_name($severity),
+            'message'     => $message,
+            'file'        => $file,
+            'line'        => $line,
+            'result'      => 'error',
+        ]);
     }
 }
 
@@ -72,6 +87,28 @@ function bootstrap_exception_handler(Throwable $e): void
         PHP_EOL
     );
     @file_put_contents(LOG_PATH . '/app.log', $log, FILE_APPEND);
+
+    // A PDOException means the failure is in the data layer, which is what an
+    // investigator needs to know first, so it gets its own event type. The
+    // message can quote the DSN on a connection failure, so only the SQLSTATE
+    // code is forwarded, never the driver message.
+    $isDatabase = $e instanceof PDOException;
+    $actor = current_user();
+
+    SecurityLogger::log(
+        $isDatabase ? SecurityLogger::DATABASE_ERROR : SecurityLogger::UNEXPECTED_EXCEPTION,
+        [
+            'error_type'   => get_class($e),
+            'error_code'   => $isDatabase ? (string) ($e->getCode() ?: 'n/a') : null,
+            'message'      => $isDatabase ? 'PDO exception' : $e->getMessage(),
+            'file'         => $e->getFile(),
+            'line'         => $e->getLine(),
+            'user_id'      => $actor['id']   ?? null,
+            'username'     => $actor['username'] ?? null,
+            'role'         => $actor['role'] ?? null,
+            'result'       => 'error',
+        ]
+    );
 
     if (APP_ENV !== 'production') {
         error_log($log);

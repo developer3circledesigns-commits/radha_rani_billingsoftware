@@ -19,8 +19,19 @@ switch (method()) {
         break;
 
     case 'DELETE':
-        if (!csrf_verify()) api_error('Session token expired.', 419);
+        if (!csrf_verify()) csrf_fail_api('Session token expired.');
         Bill::softDelete($id);
+        SecurityLogger::log(SecurityLogger::RECORD_DELETED, [
+            'entity_type'       => 'bill',
+            'entity_id'         => (int) $id,
+            'branch_id'         => (int) $bill['branch_id'],
+            'payment_type'      => $bill['payment_type'],
+            'business_date'     => $bill['business_date'],
+            'original_filename' => $bill['original_filename'],
+            'file_size'         => (int) $bill['file_size'],
+            'deletion_type'     => 'soft_delete',
+            'result'            => 'success',
+        ]);
         log_activity((int) $user['id'], $bill['branch_id'], 'BILL_DELETED', 'bill', $id, 'API: deleted bill #' . $id . ' (' . $bill['original_filename'] . ')');
         api_ok(
             ['restore_until' => Bill::find($id)['purge_after'] ?? null],

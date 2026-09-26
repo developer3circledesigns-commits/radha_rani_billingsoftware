@@ -21,6 +21,22 @@ if ($user['role'] === 'owner') {
 } elseif ($user['role'] === 'branch_admin' && $user['branch_id'] && (int) $user['branch_id'] === (int) $bill['branch_id']) {
     // allowed - own branch only
 } else {
+    // A branch admin reaching for a bill outside their own branch is the
+    // clearest cross-tenant access attempt in the application, so the event
+    // names both the branch the actor belongs to and the one they asked for.
+    // Only identifiers are recorded - never the document, its name or content.
+    SecurityLogger::denied(
+        SecurityLogger::FORBIDDEN_ACCESS,
+        'cross_branch_bill_access',
+        $user,
+        [
+            'entity_type'   => 'bill',
+            'entity_id'     => (int) $bill['id'],
+            'actor_branch'  => $user['branch_id'] !== null ? (int) $user['branch_id'] : null,
+            'target_branch' => (int) $bill['branch_id'],
+            'endpoint'      => 'bill_download',
+        ]
+    );
     http_response_code(403);
     log_activity((int) $user['id'], $user['branch_id'], 'BILL_DOWNLOAD_DENIED', 'bill', $bill['id'], 'Unauthorized download attempt');
     require APP_PATH . '/views/errors/403.php';

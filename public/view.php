@@ -23,6 +23,18 @@ if ($user['role'] === 'owner') {
 } elseif ($user['role'] === 'branch_admin' && $user['branch_id'] && (int) $user['branch_id'] === (int) $bill['branch_id']) {
     // allowed - own branch only
 } else {
+    SecurityLogger::denied(
+        SecurityLogger::FORBIDDEN_ACCESS,
+        'cross_branch_bill_access',
+        $user,
+        [
+            'entity_type'   => 'bill',
+            'entity_id'     => (int) $bill['id'],
+            'actor_branch'  => $user['branch_id'] !== null ? (int) $user['branch_id'] : null,
+            'target_branch' => (int) $bill['branch_id'],
+            'endpoint'      => 'bill_view',
+        ]
+    );
     http_response_code(403);
     log_activity((int) $user['id'], $user['branch_id'], 'BILL_VIEW_DENIED', 'bill', $bill['id'], 'Unauthorized view attempt');
     require APP_PATH . '/views/errors/403.php';

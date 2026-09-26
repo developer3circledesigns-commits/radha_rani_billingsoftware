@@ -10,6 +10,11 @@ $user = current_user();
 if (isPost() && post('action') === 'update_settings') {
     if (!csrf_verify()) csrf_fail();
 
+    // Setting::all() returns [setting_key => setting_value]. One extra query,
+    // on a POST that only an owner can make, and only so the event can say
+    // WHICH setting changed instead of "settings were saved".
+    $beforeByKey = array_map('strval', Setting::all());
+
     $settings = [
         'system_name'         => trim((string) post('system_name', '')),
         'max_file_size_mb'    => max(1, min(200, (int) post('max_file_size_mb', 20))),
@@ -22,6 +27,24 @@ if (isPost() && post('action') === 'update_settings') {
         Setting::set($k, $v);
     }
 
+    // Report the NAMES of the settings that actually changed, never their
+    // values. A setting value could carry operational data an analyst has no
+    // need to see in a SIEM, and "which knob was turned" is the actual
+    // question an investigation asks.
+    $changed = [];
+    foreach ($settings as $k => $v) {
+        if (($beforeByKey[$k] ?? null) !== $v) {
+            $changed[] = $k;
+        }
+    }
+
+    SecurityLogger::log(SecurityLogger::ADMIN_SETTINGS_CHANGED, [
+        'changed_settings' => $changed,
+        'settings_count'   => count($settings),
+        'result'           => 'success',
+    ]);
+
+    // Mirrored to security.log as admin_settings_changed.
     log_activity((int) $user['id'], null, 'SETTINGS_UPDATED', 'settings', null, 'Updated system settings');
     flash_set('success', 'Settings saved successfully.');
     redirect('owner/settings.php');

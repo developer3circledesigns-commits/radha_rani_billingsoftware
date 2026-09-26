@@ -16,7 +16,7 @@ if (check_authentication()) {
 }
 
 if (!csrf_verify()) {
-    api_error('Session token expired.', 419);
+    csrf_fail_api('Session token expired.');
 }
 
 logout_user();

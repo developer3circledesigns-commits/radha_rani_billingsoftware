@@ -26,6 +26,21 @@ if ($user['role'] === 'owner') {
 } elseif ($user['role'] === 'branch_admin' && $user['branch_id'] && (int) $user['branch_id'] === (int) $bill['branch_id']) {
     // allowed - own branch only
 } else {
+    // Same cross-tenant signal as view.php. This endpoint returns a bare 403
+    // with no body, so without this event a probe against the raw PDF stream
+    // would leave no trace in the SIEM at all.
+    SecurityLogger::denied(
+        SecurityLogger::FORBIDDEN_ACCESS,
+        'cross_branch_bill_access',
+        $user,
+        [
+            'entity_type'   => 'bill',
+            'entity_id'     => (int) $bill['id'],
+            'actor_branch'  => $user['branch_id'] !== null ? (int) $user['branch_id'] : null,
+            'target_branch' => (int) $bill['branch_id'],
+            'endpoint'      => 'bill_pdf_stream',
+        ]
+    );
     http_response_code(403);
     exit;
 }
