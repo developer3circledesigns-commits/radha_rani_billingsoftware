@@ -197,6 +197,26 @@
         });
     })();
 
+    // ---------- Compliance settings: warn when nothing is required ----------
+    // With both requirement switches off there is no gap a branch can have, so
+    // the daily check is inert and no alert can ever be raised. That is a
+    // legitimate choice for a hotel that takes no bills, but it is
+    // indistinguishable from a broken feature if nothing says so - so the warning
+    // appears as the owner unticks, before the save, not only after it.
+    (function () {
+        const cash = document.getElementById('s_cash');
+        const card = document.getElementById('s_card');
+        const warning = document.getElementById('requireNoneWarning');
+        if (!cash || !card || !warning) return;
+
+        const refresh = function () {
+            warning.classList.toggle('d-none', cash.checked || card.checked);
+        };
+        cash.addEventListener('change', refresh);
+        card.addEventListener('change', refresh);
+        refresh();
+    })();
+
     // ---------- Notification bell: read on open ----------
     // Server-rendered, so the list is already correct on load. Opening the
     // dropdown marks what is on screen as seen, which keeps the badge honest

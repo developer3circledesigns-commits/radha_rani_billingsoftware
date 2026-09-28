@@ -399,7 +399,8 @@ return [
         'settings.require_card'         => 'Pro Filiale und Geschäftstag einen Kartenbeleg-PDF verlangen',
         'settings.save'                 => 'Einstellungen speichern',
          'settings.saved_ok'             => 'Einstellungen wurden erfolgreich gespeichert.',
-         'settings.saved_but_no_requirement' => 'Einstellungen gespeichert, aber es ist kein Belegtyp erforderlich – die Tagesprüfung ist damit aus und es kann kein Alarm ausgelöst werden.',
+         'settings.require_none_warning' => 'Es ist nichts erforderlich. Sind beide Schalter aus, kann keine Filiale etwas verpassen, die Tagesprüfung ist damit aus und es wird kein Alarm ausgelöst. Aktivieren Sie mindestens einen Schalter, um sie wieder einzuschalten.',
+         'settings.saved_but_no_requirement' => 'Einstellungen gespeichert, aber es ist kein Belegtyp erforderlich – die Tagesprüfung ist damit aus und es kann kein Alarm ausgelöst werden. Aktivieren Sie „Ein Barbeleg pro Filiale“ oder „Ein Kartenbeleg pro Filiale“ unter Uploads und speichern Sie erneut.',
 
         'settings.system_info'          => 'Systeminformationen',
         'settings.app'                  => 'Anwendung',

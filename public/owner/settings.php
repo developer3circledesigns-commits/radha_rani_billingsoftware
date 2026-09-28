@@ -152,6 +152,13 @@ ob_start();
                                 <label class="form-check-label" for="s_card"><?= e(t('settings.require_card')) ?></label>
                             </div>
                             <div class="form-text"><?= e(t('settings.require_help')) ?></div>
+                            <?php // Warn where the decision is made, not only after
+                                  // saving. Untick both and the daily check silently
+                                  // stops flagging anything, which reads as a broken
+                                  // feature rather than a switched-off one. ?>
+                            <div class="alert alert-warning border-0 shadow-sm d-none mt-2 mb-0 py-2 px-3 small" id="requireNoneWarning" role="status">
+                                <i class="bi bi-exclamation-triangle me-1"></i><?= e(t('settings.require_none_warning')) ?>
+                            </div>
                         </div>
                     </div>
             </div>
