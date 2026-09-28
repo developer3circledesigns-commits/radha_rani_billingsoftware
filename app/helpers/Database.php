@@ -139,6 +139,47 @@ final class Database
     }
 
     /**
+     * Does this table exist? Answered once per request.
+     *
+     * A feature's tables are an optional part of the schema, not a prerequisite
+     * for the rest of the portal. Deploying new code before running the migration
+     * that adds a feature's tables is an ordinary mistake, and the wrong outcome
+     * for it is a blank 500 on every page rather than one missing bell icon.
+     * Callers use this to degrade instead of dying.
+     */
+    public static function tableExists(string $table): bool
+    {
+        /** @var array<string,bool> $cache */
+        static $cache = [];
+
+        if (array_key_exists($table, $cache)) {
+            return $cache[$table];
+        }
+
+        try {
+            $row = self::fetch(
+                'SELECT 1 AS ok FROM information_schema.TABLES
+                  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?',
+                [$table]
+            );
+            $cache[$table] = !empty($row);
+        } catch (Throwable $e) {
+            // A connection-level problem, not a missing table. Saying "absent"
+            // would hide the real fault behind a misleading message.
+            $cache[$table] = false;
+        }
+
+        if (!$cache[$table]) {
+            error_log(
+                'Table "' . $table . '" is not present. The daily upload compliance '
+                . 'feature is disabled until it exists - run: php tools/migrate.php'
+            );
+        }
+
+        return $cache[$table];
+    }
+
+    /**
      * Run a statement.
      *
      * $lobIndexes lists zero-based positions in $params that hold binary

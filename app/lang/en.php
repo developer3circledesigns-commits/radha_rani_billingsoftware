@@ -467,6 +467,8 @@ return [
         'compliance.not_yet_enforced' => 'The deadline for this day is :time, so no branch has missed anything yet.',
         'compliance.nothing_required'  => 'No bill type is required, so nothing is ever overdue and no alert can be raised. Tick Cash and/or Card to switch the check on.',
         'compliance.open_settings'     => 'Open settings',
+        'compliance.not_installed_title' => 'Daily upload compliance is not set up on this server',
+        'compliance.not_installed'    => 'The compliance tables are missing, so no alerts can be read or raised. Nothing else in the portal is affected. Run the migration, then reload this page:',
         'compliance.check_due_at'     => 'The daily check runs at :time (:rel). Nothing is overdue until then.',
         'compliance.check_now'         => 'Run the check now',
         'compliance.check_not_due'     => 'Nothing to do yet: the check for :time has not come due.',

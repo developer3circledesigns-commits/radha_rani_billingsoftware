@@ -122,16 +122,46 @@ function is_benign_schema_error(PDOException $e): bool
 
 $ran = 0;
 $skipped = 0;
+$repaired = 0;
+
+/**
+ * The tables a migration file creates.
+ *
+ * Used to detect a ledger that disagrees with reality: schema_migrations can say
+ * a migration was applied while its tables are gone - after a partial import, a
+ * restore from the wrong backup, or a table dropped by hand. Trusting the ledger
+ * alone in that state reports "Nothing to migrate" while the feature is broken,
+ * which is the worst possible answer, because the operator is told to stop
+ * looking.
+ */
+function tables_created_by(string $sql): array
+{
+    if (preg_match_all('/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([A-Za-z0-9_]+)`?/i', $sql, $m) === false) {
+        return [];
+    }
+    return array_values(array_unique($m[1]));
+}
+
+function missing_tables(array $tables): array
+{
+    if ($tables === []) {
+        return [];
+    }
+    $missing = [];
+    foreach ($tables as $table) {
+        $row = Database::fetch(
+            'SELECT 1 AS ok FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?',
+            [$table]
+        );
+        if (empty($row['ok'])) {
+            $missing[] = $table;
+        }
+    }
+    return $missing;
+}
 
 foreach ($files as $file) {
     $name = basename($file);
-
-    if (in_array($name, $applied, true)) {
-        echo "  = {$name} (already applied)\n";
-        continue;
-    }
-
-    echo "  + {$name}\n";
 
     $sql = file_get_contents($file);
     if ($sql === false) {
@@ -139,6 +169,20 @@ foreach ($files as $file) {
         exit(1);
     }
 
+    if (in_array($name, $applied, true)) {
+        $missing = missing_tables(tables_created_by($sql));
+        if ($missing === []) {
+            echo "  = {$name} (already applied)\n";
+            continue;
+        }
+
+        // Recorded but not actually there. Say so plainly and put it right,
+        // rather than letting the ledger quietly contradict the database.
+        echo "  ! {$name} is recorded as applied but missing: " . implode(', ', $missing) . " - reapplying\n";
+        $repaired++;
+    }
+
+    echo "  + {$name}\n";
     try {
         foreach (split_statements($sql) as $statement) {
             try {
@@ -156,11 +200,20 @@ foreach ($files as $file) {
         exit(1);
     }
 
-    Database::execute('INSERT INTO schema_migrations (filename) VALUES (?)', [$name]);
+    // INSERT IGNORE, not INSERT: a repaired migration is already recorded and
+    // re-recording it would fail on the primary key.
+    Database::execute('INSERT IGNORE INTO schema_migrations (filename) VALUES (?)', [$name]);
     $ran++;
 }
 
-echo $ran === 0
-    ? "Nothing to migrate.\n"
-    : "Done. {$ran} migration(s) applied.\n"
-        . ($skipped > 0 ? "{$skipped} statement(s) were already in place.\n" : '');
+if ($ran === 0) {
+    echo "Nothing to migrate.\n";
+} else {
+    echo "Done. {$ran} migration(s) applied.\n";
+    if ($repaired > 0) {
+        echo "{$repaired} of those repaired a migration that was recorded but not actually present.\n";
+    }
+    if ($skipped > 0) {
+        echo "{$skipped} statement(s) were already in place.\n";
+    }
+}

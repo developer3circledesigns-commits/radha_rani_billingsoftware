@@ -53,7 +53,10 @@ $activeMenu = $activeMenu ?? '';
                 // by user id, so it can only ever be this owner's own alerts.
                 // Branch admins get the same number in the topbar bell; they have
                 // no Daily Compliance entry here because the report is owner-only.
-                $navUnread = Notification::unreadCount((int) $currentUser['id']);
+                $navUnread = Notification::isAvailable()
+                    ? Notification::unreadCount((int) $currentUser['id'])
+                    : 0;
+
                 ?>
                 <?php if ($navUnread > 0) : ?>
                 <span class="sidebar-count ms-auto"><?= $navUnread > 99 ? '99+' : $navUnread ?></span>

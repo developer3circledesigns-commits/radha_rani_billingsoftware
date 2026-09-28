@@ -28,6 +28,20 @@ class Notification
 {
     public const TYPE_DAILY_UPLOAD_MISSING = 'daily_upload_missing';
 
+    /**
+     * Is the notification feature installed on this database?
+     *
+     * The tables arrive with migration 003. A host that received new code before
+     * running the migration has no such table, and every read here would throw -
+     * which, because the bell sits in the layout, would turn a missing migration
+     * into a 500 on every single page. So the check is asked first, and the UI
+     * simply has no bell instead of failing.
+     */
+    public static function isAvailable(): bool
+    {
+        return Database::tableExists('notifications');
+    }
+
     /** Latest alerts for the bell dropdown, newest first. */
     public static function latest(int $userId, int $limit = 8, bool $onlyUnread = false): array
     {

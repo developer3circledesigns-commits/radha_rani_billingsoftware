@@ -22,6 +22,13 @@ if (!is_array($currentUser) || ($currentUser['role'] ?? '') === '') {
     return;
 }
 
+// No notifications table means the migration has not been run on this host.
+// Render nothing rather than letting the layout die: a missing bell is a far
+// smaller problem than a 500 on every page.
+if (!Notification::isAvailable()) {
+    return;
+}
+
 $notifIsOwner = ($currentUser['role'] ?? '') === 'owner';
 
 $notifUserId = (int) $currentUser['id'];

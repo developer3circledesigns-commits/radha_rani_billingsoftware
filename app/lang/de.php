@@ -480,6 +480,8 @@ return [
          'compliance.nothing_required'   => 'Es ist kein Belegtyp erforderlich, daher ist nichts überfällig und es kann kein Alarm ausgelöst werden. Aktivieren Sie Bar und/oder Karte, um die Prüfung einzuschalten.',
          'compliance.check_due_at'       => 'Die Tagesprüfung läuft um :time (:rel). Bis dahin ist nichts überfällig.',
          'compliance.open_settings'      => 'Einstellungen öffnen',
+         'compliance.not_installed_title' => 'Die Tageskontrolle ist auf diesem Server nicht eingerichtet',
+         'compliance.not_installed'     => 'Die Tabellen für die Tageskontrolle fehlen, daher können keine Alarme gelesen oder ausgelöst werden. Der übrige Bereich ist nicht betroffen. Führen Sie die Migration aus und laden Sie diese Seite neu:',
          'compliance.check_now'          => 'Prüfung jetzt ausführen',
          'compliance.check_not_due'      => 'Noch nichts zu tun: Die Prüfung um :time ist noch nicht fällig.',
          'compliance.check_done_missing'  => 'Prüfung abgeschlossen: :n Filiale hat noch keinen Upload.|Prüfung abgeschlossen: :n Filialen haben noch keinen Upload.',

@@ -587,7 +587,32 @@ class DailyCompliance
             ];
         }
 
+        // Writes to daily_upload_checks, so a host that has not run migration
+        // 003 would throw here - and this runs on every dashboard load, so that
+        // would be a 500 on the dashboard rather than a missing feature.
+        if (!self::isAvailable()) {
+            return [
+                'date'             => $date,
+                'skipped'          => true,
+                'created'          => 0,
+                'branches_missing' => $status['branches_missing'],
+                'branches_total'   => $status['branches_total'],
+            ];
+        }
+
         return self::evaluateAndNotify($date, false, $now);
+    }
+
+    /**
+     * Are this feature's tables present?
+     *
+     * The compliance tables arrive with migration 003. Branch and bill
+     * management do not depend on them and must keep working while they are
+     * absent, so the pages ask this instead of letting a write fail.
+     */
+    public static function isAvailable(): bool
+    {
+        return Database::tableExists('notifications') && Database::tableExists('daily_upload_checks');
     }
 
     /** Recorded sweeps, newest first, for the report page. */

@@ -7,11 +7,26 @@ require_once dirname(__DIR__, 2) . '/app/bootstrap.php';
 require_owner();
 $user = current_user();
 
+/**
+ * The feature's tables come from migration 003. Without them there is nothing to
+ * show, and every query on this page would throw - so say what to run instead of
+ * answering with a 500. This is the one page where the absence is the whole story,
+ * which is why the check is visible here rather than silent.
+ */
+$complianceReady = DailyCompliance::isAvailable();
+
 // ------------------------------------------------------------------
 // Mark alerts as read
 // ------------------------------------------------------------------
 if (isPost() && post('action') === 'mark_all_read') {
     if (!csrf_verify()) csrf_fail();
+    if (!$complianceReady) {
+        if (isAjax()) {
+            api_error(t('compliance.not_installed'), 409);
+        }
+        flash_set('danger', t('compliance.not_installed'));
+        redirect('owner/daily-compliance.php');
+    }
 
     $marked = Notification::markAllRead((int) $user['id']);
 
@@ -50,6 +65,14 @@ if (isPost() && post('action') === 'mark_read') {
 if (isPost() && post('action') === 'run_check') {
     if (!csrf_verify()) csrf_fail();
 
+    if (!$complianceReady) {
+        if (isAjax()) {
+            api_error(t('compliance.not_installed'), 409);
+        }
+        flash_set('danger', t('compliance.not_installed'));
+        redirect('owner/daily-compliance.php');
+    }
+
     $checkDate = (string) post('date', '');
     if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $checkDate) !== 1) {
         $checkDate = date('Y-m-d');
@@ -87,6 +110,35 @@ if ($dateFilter !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFilter) !== 1
 $viewDate = $dateFilter !== '' ? $dateFilter : date('Y-m-d');
 $status   = DailyCompliance::statusForDate($viewDate);
 $hasRequirement = DailyCompliance::hasRequirement();
+
+/**
+ * Not migrated: stop here and say so.
+ *
+ * The rest of this page reads the notifications and check-history tables, so
+ * without them it cannot be rendered at all. Naming the command is far more use
+ * to whoever deployed than a 500 with a database error behind it.
+ */
+if (!$complianceReady) {
+    $pageTitle    = t('compliance.title');
+    $pageSubtitle = t('compliance.subtitle');
+    $activeMenu   = 'compliance';
+    ob_start();
+    ?>
+    <div class="alert alert-danger border-0 shadow-sm d-flex align-items-start gap-2">
+        <i class="bi bi-exclamation-octagon-fill fs-5"></i>
+        <div>
+            <div class="fw-semibold mb-1"><?= e(t('compliance.not_installed_title')) ?></div>
+            <p class="mb-2"><?= e(t('compliance.not_installed')) ?></p>
+            <code class="d-inline-block p-2 rounded" style="background:rgba(0,0,0,.05)">php tools/migrate.php</code>
+        </div>
+    </div>
+    <?php
+    $bodyContent = ob_get_clean();
+    require APP_PATH . '/views/layouts/header.php';
+    echo $bodyContent;
+    require APP_PATH . '/views/layouts/footer.php';
+    exit;
+}
 
 // Same fallback sweep as the dashboard, so the countdown on this page is a real
 // promise: the page refreshes itself at the deadline, and the alert is actually
