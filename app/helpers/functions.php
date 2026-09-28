@@ -69,6 +69,18 @@ function isGet(): bool
     return method() === 'GET';
 }
 
+/**
+ * Did this request come from fetch()/XHR rather than a form navigation?
+ *
+ * A page that handles both has to branch: the browser path wants a redirect and
+ * a flash message, while the scripted path wants JSON and no navigation. The
+ * header is the conventional marker and cannot be set by a plain form post.
+ */
+function isAjax(): bool
+{
+    return strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest';
+}
+
 function post(string $key, $default = null)
 {
     return $_POST[$key] ?? $default;

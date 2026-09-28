@@ -224,6 +224,28 @@
 
                 resultActions.appendChild(viewLink);
                 resultActions.appendChild(againBtn);
+
+                // The upload changed the "bills not uploaded" alert for this
+                // branch. Saying so here stops the branch admin assuming the
+                // owner is still looking at a red badge, and confirms the loop
+                // from their side actually did something.
+                //
+                // A day can be only partly fixed, so the server sends the
+                // finished message rather than a key: it knows what is still
+                // outstanding and has already translated it. The client only
+                // needs a fallback for the no-placeholder case.
+                const compliance = data.data.compliance;
+                if (compliance && compliance.closed > 0) {
+                    const message = compliance.message || (compliance.compliant
+                        ? txt('js.compliance_restored', 'The owner has been notified that today\'s bills are now complete.')
+                        : '');
+                    if (message) {
+                        window.RRToast(
+                            message,
+                            compliance.compliant ? 'success' : 'warning'
+                        );
+                    }
+                }
             } else {
                 showError(data && data.message ? data.message : txt('js.failed_retry', 'Upload failed — please retry.'));
             }

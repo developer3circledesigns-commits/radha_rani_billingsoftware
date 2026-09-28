@@ -222,6 +222,17 @@ If it reports `bills.pdf_bytes is missing`, run the migrations instead:
 php tools/migrate.php
 ```
 
+### Importing an older database
+
+If the database was created from a previous version of `init.sql`, the newest tables
+will be missing after a plain re-import. `php tools/migrate.php` adds them in order
+and is safe to re-run; it records what it applied in the `migrations` table.
+
+Migration `003` creates the daily-compliance tables (`notifications`,
+`daily_upload_checks`) and seeds the compliance settings. Every other setting keeps
+its current value, so turning the feature on is a decision you make in
+**Owner → Settings** afterwards, not a side effect of deploying.
+
 ---
 
 ## 5. Permissions
@@ -251,6 +262,31 @@ Never use `777`.
 `public/.user.ini` already raises the limits and is the shared-hosting-safe way to do
 it. hPanel's own values **override** `.user.ini`, so if you change anything in
 **PHP Settings**, keep it at least as large:
+
+### The database clock must match `APP_TIMEZONE`
+
+`bills.uploaded_at` is written by the database (`DEFAULT CURRENT_TIMESTAMP`) while
+every day boundary and deadline is computed by PHP in `APP_TIMEZONE`. If the two
+disagree, the daily compliance check silently files uploads under the wrong day:
+an upload made at 01:00 local is stored as 19:00 the **previous** day, so a branch
+that did upload is reported as not having, and the alert for the day it really
+belongs to is never raised. Timestamps in the UI are wrong by the same offset.
+
+`Database::connection()` sets the session timezone from `APP_TIMEZONE` on every
+connection, so this needs no server configuration. Confirm it took effect:
+
+```bash
+php tools/deploy-check.php
+```
+
+```
+OK    database clock agrees with APP_TIMEZONE (Asia/Kolkata, 2026-09-28 14:01:20)
+```
+
+> Hosted on a server whose own timezone is correct, the fix is still applied — it
+> is a no-op when the two already agree. Rows written **before** this was in place
+> keep their original instant (they are stored as an absolute point in time), so
+> nothing needs migrating; only the display and the day windows were affected.
 
 | Setting | Value |
 |---|---|
@@ -329,6 +365,45 @@ php /home/USER/radha_rani/tools/backfill-pdf-copies.php --apply
 
 Only needed if you are moving an existing database whose bills predate dual storage.
 
+### Daily bill-upload compliance sweep
+
+```bash
+/usr/bin/php /home/USER/radha_rani/tools/check-daily-uploads.php
+```
+
+- Frequency: hourly, e.g. `7 * * * *`
+
+The minute is deliberately not `0`: every branch uploading at the same instant as
+everyone else is how a shared host runs out of PHP workers.
+
+This alerts the owner about branches that have not sent a required bill after the
+day's deadline. It **exits `1`** when a day has a non-compliant branch, which is
+intentional: hPanel shows a non-zero exit as a failed run, so a monitoring check can
+alert on it. Re-running the same day creates nothing, so a failure is safe to retry.
+
+The feature also works **without** this cron: the owner dashboard runs a fallback
+sweep on load, so alerts still appear. The cron just means they appear while nobody
+is looking — and without it, an alert can be up to an hour late, because the
+dashboard sweep only runs when an owner happens to open it. To confirm the sweep
+works before trusting it:
+
+```bash
+php /home/USER/radha_rani/tools/check-daily-uploads.php --dry-run
+```
+
+`--dry-run` prints what it would do and writes nothing. An owner can also press
+**Run the check now** on the Daily Compliance page, which runs the same check
+immediately.
+
+> The deadline is a clock time, not an alarm: setting it to 13:00 does not by
+> itself run anything at 13:00. Without the cron, rely on the owner-page sweep or
+> the **Run the check now** button.
+
+> The deadline is evaluated in the portal timezone (`APP_TIMEZONE`, default
+> `Asia/Kolkata`), not the server's. If the host clock is on UTC, an hourly run
+> still covers every day exactly once, because a day is only checked once its
+> deadline has passed.
+
 ---
 
 ## 9. Final verification
@@ -348,8 +423,13 @@ Then confirm in a browser:
 3. Upload a PDF as a branch admin → it appears in Bills and opens in the viewer
 4. Owner → **Recently Deleted** shows the new page; delete and restore a bill
 5. Switch the language in the sidebar → the UI changes, a reload keeps it
+
    (this writes the `rr_lang` cookie), and `<html lang="de">` is set
 6. `php tools/check-i18n.php` reports `0 issue(s)` for every catalogue
+7. Owner → **Daily Compliance** loads, and the sidebar shows the entry
+8. Set a deadline a few minutes in the past, and make sure a branch has not
+   uploaded → after a dashboard refresh (or one cron run) the owner sees the
+   banner and a badge. Uploading the missing bill makes both disappear.
 
 ---
 
@@ -395,6 +475,11 @@ php tools/check-i18n.php
 | Language resets on every page | `rr_lang` cookie blocked by the browser | Confirm cookies are allowed on the subdomain; a third-party-cookie block silently drops it |
 | `Unknown data type: 'TIMESTAM...'` on import | phpMyAdmin's SQL linter mangling a `TIMESTAMP` column | Already fixed in `database/init.sql` — use `DATETIME` throughout. Pull the latest commit, or use the **Import** tab rather than pasting into the SQL box |
 | Import "succeeds" but login says invalid credentials | Schema imported without the owner row | Re-import `database/init.sql`; it seeds the owner (`owner` / `Owner@123`) — then change the password in Profile |
+| **No upload-compliance alerts at all** | Master switch off, or no bill type required | Owner → Settings: switch `daily_upload_alert_enabled` on and tick Cash and/or Card. Unticking both leaves the daily check off, and saving says so in a warning. |
+| Alerts never appear for a day | The day has not passed its deadline yet, or is outside the start/end window | Check the deadline in **Owner → Settings**; the sweep only runs after it has passed |
+| The cron "fails" every hour | `check-daily-uploads.php` exits `1` when a branch is non-compliant | Expected. hPanel shows it as a failed run; use `--dry-run` to inspect, and rely on the dashboard fallback sweep |
+| A branch is flagged as missing although it uploaded | The bill was uploaded on a different day than expected | Compliance uses `uploaded_at`, not the printed date; check the bill's upload timestamp |
+| A branch is flagged despite having a bill | It owes a second type | One Cash bill does not satisfy "Cash **and** Card"; read the alert text in the report |
 
 ### Blank 500 pages
 

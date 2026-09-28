@@ -203,6 +203,54 @@ SecurityLogger::fileUploaded(
 log_activity((int) $user['id'], (int) $branch['id'], 'BILL_UPLOADED', 'bill', $billId,
     'Uploaded ' . ($paymentType === 'cash' ? 'Cash' : 'Card') . ' bill for ' . $businessDate . ': ' . $origName);
 
+/**
+ * Settle the "bills not uploaded" alert this bill has just changed.
+ *
+ * Compliance is measured on the submission timestamp, not business_date, so
+ * the alert being resolved is keyed on the date the bill landed - not the date
+ * printed on the document. Uploading a back-dated bill therefore satisfies
+ * yesterday's alert, not today's, which is the behaviour the owner expects.
+ *
+ * A day can be only partly fixed - cash arrives, the card bill does not - so the
+ * response reports what is still outstanding instead of claiming victory. The
+ * toast below then tells the branch admin whether the owner is off the hook or
+ * still waiting on something.
+ */
+$compliance = DailyCompliance::settleAfterUpload((int) $branch['id'], date('Y-m-d'));
+
+$complianceMessage = '';
+if ($compliance['closed'] > 0) {
+    if ($compliance['compliant']) {
+        $complianceMessage = t('js.compliance_restored');
+    } else {
+        // The brief noun forms are used here rather than compliance.missing_*,
+        // which are full sentences and would read as "the No Card bill uploaded
+        // is still missing".
+        $short = array_map(
+            static fn (string $type): string => t('compliance.type_' . $type . '_short'),
+            $compliance['missing']
+        );
+        $complianceMessage = count($short) === 1
+            ? t('js.compliance_partial', ['what' => $short[0]])
+            : t('js.compliance_partial_many', [
+                'what' => t('compliance.missing_types', ['types' => implode(', ', $short)]),
+            ]);
+    }
+
+    log_activity(
+        (int) $user['id'],
+        (int) $branch['id'],
+        $compliance['compliant'] ? 'BILL_UPLOAD_COMPLIANCE_RESTORED' : 'BILL_UPLOAD_COMPLIANCE_PARTIAL',
+        'branch',
+        (int) $branch['id'],
+        'Daily upload compliance for ' . $branch['branch_code'] . ' on ' . date('Y-m-d') . ': '
+            . ($compliance['compliant']
+                ? 'restored, ' . $compliance['closed'] . ' alert(s) closed'
+                : 'still missing ' . implode('+', $compliance['missing'])
+                    . ', ' . $compliance['closed'] . ' alert(s) closed and re-raised')
+    );
+}
+
 api_ok([
     'bill_id'     => $billId,
     'filename'    => $origName,
@@ -211,4 +259,10 @@ api_ok([
     'size'        => format_bytes($size),
     'view_url'    => url('view.php') . '?id=' . $billId,
     'download_url'=> url('download.php') . '?id=' . $billId,
+    'compliance'  => [
+        'closed'    => $compliance['closed'],
+        'compliant' => $compliance['compliant'],
+        'missing'   => $compliance['missing'],
+        'message'   => $complianceMessage,
+    ],
 ], t('api.ok_bill_uploaded'));

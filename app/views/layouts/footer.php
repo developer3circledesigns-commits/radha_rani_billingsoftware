@@ -30,6 +30,11 @@
     window.APP.BASE_URL = <?= json_encode(BASE_URL) ?>;
     window.APP.CSRF = <?= json_encode(csrf_token()) ?>;
     window.APP.MAX_UPLOAD_MB = <?= json_encode((int) Setting::get('max_file_size_mb', 20)) ?>;
+    // When today's compliance check is still pending, hand the browser the exact
+    // instant it is due. app.js arms a single timer for it, so a page left open
+    // across the deadline shows the alert instead of sitting stale. Only the
+    // owner ever gets a value here, and only while something is actually due.
+    window.APP.COMPLIANCE_DUE_AT = <?= json_encode($complianceDueAt ?? null) ?>;
     // Client-side strings. Inlined rather than fetched from a JSON file
     // because the .htaccess rules return 404 for /lang/*.json, so a request
     // for a translation file would fail on every deployment layout. Only the

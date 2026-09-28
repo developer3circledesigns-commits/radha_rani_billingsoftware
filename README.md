@@ -27,6 +27,25 @@ Open **http://localhost:8091** and sign in.
 > The compose uses host port `8091` to avoid clashes with XAMPP's Apache on `8080`.
 > Change `ports` in `docker/docker-compose.yml` if needed.
 
+#### `no configuration file provided`
+
+The compose file lives in `docker/`, and `docker compose` only looks in the current
+directory — so running it from the repository root fails with that error. Either
+`cd docker` first as above, or point at the file explicitly:
+
+```bash
+docker compose -f docker/docker-compose.yml up -d --build
+```
+
+Both forms resolve to the **same** compose project, because the project name comes
+from the compose file's own directory. That matters: the project name namespaces the
+volumes, so a command that changed it would come up with an empty database.
+
+Do not add a `compose.yaml` to the repository root to "fix" this. A root file would
+default to a different project name and then either fail with *name already in use*
+or, worse, start a second database under a new volume.
+
+
 #### Database passwords
 
 The dev passwords (`radhapass` / `rootpass`) are fallback defaults inside
@@ -93,7 +112,11 @@ docker compose up -d          # re-runs init.sql
   (byte-range aware), branch-scoped.
 - **Owner dashboards** — KPI cards, per-branch daily upload status (Uploaded / Partial /
   No Upload), 7-day activity chart, full bill search/filter/pagination.
+- **Daily bill-upload compliance** — the owner is alerted when a branch misses its
+  Cash/Card bill after the daily deadline, with a notification bell, a dashboard banner
+  and a per-day report. See [Daily bill-upload compliance](#daily-bill-upload-compliance).
 - **Branch management** — CRUD, activate/inactivate, soft-delete branches.
+
 - **Admin management** — CRUD branch admins, reset-password modal.
 - **Audit trail** — every sign-in, failed login, upload, and admin action recorded
   (`audit_logs`), plus login throttling (5 tries / 15 min lockout).
@@ -104,7 +127,118 @@ docker compose up -d          # re-runs init.sql
 
 ---
 
+## Daily bill-upload compliance
+
+The owner can be told automatically when a branch has not sent a bill for a day. The
+alert **also goes to that branch's admins**, in the same topbar bell, because they
+are the only people who can upload the missing bill. The whole feature is in-app: a
+notification bell badge, a dashboard banner, and a per-day report at
+**Owner → Daily Compliance**. There is no email and no polling.
+
+### What counts as a missing day
+
+| Question | Answer |
+| --- | --- |
+| Which branches? | Only branches that are `active` and not deleted. |
+| Which bills? | Bills whose **`uploaded_at`** falls in the day, not the `business_date` printed on them. |
+| What is required? | Whatever is switched on in the settings: Cash, Card, or both. |
+| When is it checked? | After the deadline for that day has passed. |
+
+The `uploaded_at` rule is deliberate: the owner is asking *"did each branch send
+something today"*, so a bill back-dated to last week satisfies today, and a bill
+uploaded at 00:05 does not satisfy yesterday.
+
+### Configuration (Owner → Settings)
+
+| Setting | Meaning |
+| --- | --- |
+| `daily_upload_alert_enabled` | Master switch. `0` disables every check. || `daily_cash_required` / `daily_card_required` | Which bill types a day needs. Both off means nobody is ever alerted — and the UI says "Not required" rather than claiming the bills are uploaded. |
+| `daily_upload_deadline_mode` | `time` for one deadline, `per_weekday` for per-weekday overrides. |
+| `daily_upload_deadline_time` | The deadline, `HH:MM` in the portal timezone. |
+| `daily_upload_deadline_weekdays` | JSON, keyed `0`–`6` (Sunday first). A blank day falls back to the global time. |
+| `daily_upload_alert_start_date` / `..._end_date` | Optional window. Days outside it are never enforced. |
+
+A day is **not** enforced before its deadline, so nothing is ever alerted early.
+The timezone is `Asia/Kolkata` unless `APP_TIMEZONE` says otherwise, and the
+database session is pinned to that same zone so upload timestamps and day
+boundaries always agree — see [DEPLOYMENT.md](DEPLOYMENT.md) for how to confirm it.
+
+### How an alert behaves
+
+- One alert per branch, day, and *set of missing types*. A branch that still owes
+  the Card bill gets a Card-scoped warning, not "missing both".
+- It reaches **two** audiences, because they can act differently: the owner, who
+  has to chase the branch, and the **admins of that branch**, who are the only
+  people who can upload the missing bill. Both see it in the same topbar bell, and
+  the branch admin's alert links straight to the upload form.
+- An admin is only ever notified about **their own branch** — the fan-out is
+  scoped by `branch_id` on the user, and read/mark-as-read is scoped by
+  `user_id`, so there is no path for one branch's alert to reach another.
+- Branch admins are told about **today only**. A backfill over past days would
+  otherwise greet a newly created admin with alerts for days before they worked
+  there, and they cannot act on those: compliance is judged on the upload
+  timestamp, so a past day can never be satisfied after the fact. The owner keeps
+  the full history.
+- Uploading a bill settles the alert for **every** recipient, for the day it was
+  **uploaded**. If the day is only partly complete, the stale alert is closed and
+  a fresh one is raised for exactly what is still outstanding, so an incomplete
+  day never goes quiet.
+- Alerts are never deleted. `read_at` means the recipient looked at it;
+  `resolved_at` means the condition stopped being true. Both are shown in the
+  report.
+- Alerts are per user. The stored dedupe key is namespaced `u{userId}:{event}`.
+
+### Running the sweep
+
+The owner dashboard runs a fallback sweep on load, so the feature works without a
+cron. For unattended operation, schedule the CLI hourly after the deadline:
+
+```
+php tools/check-daily-uploads.php                 # today
+php tools/check-daily-uploads.php --date=2026-03-10
+php tools/check-daily-uploads.php --dry-run       # report, write nothing
+```
+
+It exits `1` when a day has a non-compliant branch, so a monitoring check can alert
+on it. It is idempotent: a second run for an unchanged day creates nothing.
+
+### When the check actually happens
+
+**The deadline is a clock time, not an alarm.** Setting it to 13:00 does not by
+itself run anything at 13:00. There are four triggers, and it is worth knowing
+which one you are relying on:
+
+| Trigger | When it fires |
+| --- | --- |
+| Owner page load | Whenever an owner opens the dashboard and today's check is due |
+| Hourly cron | At the cron minute, once the deadline has passed — **up to an hour late** |
+| **Run the check now** | Whenever the owner presses it on the compliance page |
+| Page left open | An owner page arms a single timer and refreshes itself at the deadline |
+
+So an alert can appear up to an hour late if you rely on the cron alone and nobody
+is looking. The last two rows exist to remove that wait: the button runs the check
+on demand, and a page left open updates itself when the deadline arrives. Before the
+deadline the button says the check is not due yet rather than alerting early — a day
+is never judged before its deadline.
+
+While a check is still pending, the dashboard and the compliance page say when it is
+due and how long is left, instead of showing nothing.
+
+### Troubleshooting
+
+| Symptom | Cause |
+| --- | --- |
+| No alerts, ever | `daily_upload_alert_enabled=0`, or both requirements off. The report shows a banner saying so, and the status column reads "Not required" rather than "Uploaded". |
+| Alerts missing for a day | The day was not yet past its deadline, or fell outside the start/end window. |
+| A branch is listed as missing despite uploading | The bill was uploaded after the window closed, or for a different day than you expect — check `uploaded_at`. |
+| Every time is a few hours out, or uploads land on the wrong day | The database clock and `APP_TIMEZONE` disagree. Run `php tools/deploy-check.php`; it reports `database clock agrees with APP_TIMEZONE`. |
+| A branch has bills but is still flagged | It owes a *different* type: one Cash bill does not satisfy "Cash **and** Card". |
+| Alert count keeps growing per day | One alert per branch per day is expected; the report filters by day and state. |
+
+---
+
 ## Languages
+
 
 The portal ships with English (`en`) and German (`de`). The active language is chosen
 per visitor and stored in the `rr_lang` cookie plus the session, so it survives a login
@@ -200,5 +334,4 @@ storage/                 uploads + logs (gitignored, writable)
   `SameSite=Lax`; session IDs regenerated on login.
 - CSRF token on every POST (forms + API); absent/mismatched → `419`.
 - All queries use prepared statements; output escaped with `e()` (`htmlspecialchars`).
-- PDFs are never served from a static path — always through authorized PHP endpoints.#   r a d h a _ r a n i _ b i l l i n g s o f t w a r e  
- 
+- PDFs are never served from a static path — always through authorized PHP endpoints.

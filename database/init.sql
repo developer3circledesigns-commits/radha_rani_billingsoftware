@@ -120,13 +120,66 @@ CREATE TABLE IF NOT EXISTS settings (
     UNIQUE KEY uq_setting_key (setting_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- -----------------------------------------------------------
+-- Table: daily_upload_checks
+-- -----------------------------------------------------------
+-- One row per calendar day the compliance sweep ran for. UNIQUE on check_date is
+-- the idempotency guard: the cron runs hourly and the owner dashboard runs the
+-- same check on page load, but a day is only ever recorded once.
+CREATE TABLE IF NOT EXISTS daily_upload_checks (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    check_date DATE NOT NULL,
+    evaluated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    branches_total INT UNSIGNED NOT NULL DEFAULT 0,
+    branches_missing INT UNSIGNED NOT NULL DEFAULT 0,
+    notifications_created INT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_check_date (check_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------
+-- Table: notifications
+-- -----------------------------------------------------------
+-- Owner-facing alerts. title_key / body_key are catalogue keys and body_params
+-- is JSON, so the alert renders in the owner's current language when read.
+-- read_at = seen, resolved_at = the missing bill arrived and the condition is
+-- no longer true. The unread badge counts rows that are neither.
+CREATE TABLE IF NOT EXISTS notifications (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id INT UNSIGNED NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    severity ENUM('info', 'warning', 'danger') NOT NULL DEFAULT 'warning',
+    title_key VARCHAR(190) NOT NULL,
+    body_key VARCHAR(190) NOT NULL,
+    body_params TEXT NULL,
+    branch_id INT UNSIGNED NULL,
+    bill_date DATE NULL,
+    dedupe_key VARCHAR(190) NOT NULL,
+    read_at DATETIME NULL,
+    resolved_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_dedupe (dedupe_key),
+    KEY idx_user_state (user_id, resolved_at, read_at),
+    KEY idx_user_created (user_id, created_at),
+    KEY idx_branch_date (branch_id, bill_date),
+    CONSTRAINT fk_notif_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_notif_branch FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
     ('system_name', 'Radha Rani Hotel Portal'),
     ('max_file_size_mb', '20'),
     ('daily_cash_required', '1'),
     ('daily_card_required', '1'),
     ('session_lifetime_min', '30'),
-    ('deleted_bill_retention_days', '30');
+    ('deleted_bill_retention_days', '30'),
+    ('daily_upload_alert_enabled', '1'),
+    ('daily_upload_deadline_time', '23:30'),
+    ('daily_upload_deadline_mode', 'time'),
+    ('daily_upload_deadline_weekdays', ''),
+    ('daily_upload_alert_start_date', ''),
+    ('daily_upload_alert_end_date', '');
 
 -- -----------------------------------------------------------
 -- Seed: the first owner account

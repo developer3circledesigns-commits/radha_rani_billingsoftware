@@ -45,6 +45,20 @@ $activeMenu = $activeMenu ?? '';
             </a>
 
             <div class="sidebar-section-label"><?= e(t('nav.documents')) ?></div>
+            <a href="<?= url('owner/daily-compliance.php') ?>" class="sidebar-link <?= $activeMenu === 'compliance' ? 'active' : '' ?>">
+                <i class="bi bi-clipboard-x-fill"></i><span><?= e(t('nav.daily_compliance')) ?></span>
+                <?php
+                // The count is the same number as the topbar badge, so the two
+                // can never disagree. It is read through the model, which scopes
+                // by user id, so it can only ever be this owner's own alerts.
+                // Branch admins get the same number in the topbar bell; they have
+                // no Daily Compliance entry here because the report is owner-only.
+                $navUnread = Notification::unreadCount((int) $currentUser['id']);
+                ?>
+                <?php if ($navUnread > 0) : ?>
+                <span class="sidebar-count ms-auto"><?= $navUnread > 99 ? '99+' : $navUnread ?></span>
+                <?php endif; ?>
+            </a>
             <a href="<?= url('owner/bills.php') ?>" class="sidebar-link <?= $activeMenu === 'bills' ? 'active' : '' ?>">
                 <i class="bi bi-file-earmark-pdf-fill"></i><span><?= e(t('nav.bills')) ?></span>
             </a>
@@ -116,6 +130,8 @@ $activeMenu = $activeMenu ?? '';
                     <i class="bi bi-building"></i> <?= e($currentUser['branch_name']) ?>
                 </span>
                 <?php endif; ?>
+
+                <?php partial('notification_bell'); ?>
 
                 <div class="dropdown">
                     <button class="btn btn-icon dropdown-toggle-split-no-care d-flex align-items-center gap-2 topbar-user" data-bs-toggle="dropdown" aria-expanded="false" aria-label="<?= e(t('nav.account_menu')) ?>">

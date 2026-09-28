@@ -75,9 +75,49 @@ final class Database
                 require APP_PATH . '/views/errors/500.php';
                 exit;
             }
+
+            self::pinSessionTimezone(self::$instance);
         }
 
         return self::$instance;
+    }
+
+    /**
+     * Make the database clock agree with the application clock.
+     *
+     * PHP is told which timezone the hotel runs in (APP_TIMEZONE), but MySQL is
+     * not: on a stock container the server is on UTC, so NOW() and
+     * CURRENT_TIMESTAMP write UTC while every day boundary, deadline and
+     * displayed time is computed in local time. The two then disagree by the
+     * UTC offset, and the damage is not cosmetic.
+     *
+     * bills.uploaded_at has DEFAULT CURRENT_TIMESTAMP, and daily compliance asks
+     * "did this branch upload anything between local midnight and local
+     * midnight?". Comparing a UTC timestamp against a local-time window means an
+     * upload at 01:00 local is stored as 19:00 the previous day and therefore
+     * counts for the WRONG DAY - a branch that did upload gets told it did not,
+     * and the alert for the day it really belongs to is never raised. Audit
+     * timestamps, login throttling and soft-delete stamps drift the same way.
+     *
+     * The offset is taken from PHP for "now" rather than a named zone, because
+     * the official MySQL images ship without the timezone tables and a named
+     * zone such as 'Asia/Kolkata' would fail with a warning that is easy to miss.
+     * The trade-off is that a zone observing DST is pinned to the current offset
+     * for the life of the connection; Asia/Kolkata has no DST, and the hotel's
+     * own deadline is a wall-clock time either way.
+     */
+    private static function pinSessionTimezone(PDO $pdo): void
+    {
+        $offset = (new DateTimeImmutable('now'))->format('P'); // "+05:30"
+
+        // Best effort: if the server refuses (no privilege, odd build) the app
+        // still works, it just keeps the server's clock. Failing the whole
+        // request here would be a far worse outcome than a wrong-by-5-hours row.
+        try {
+            $pdo->exec("SET time_zone = " . $pdo->quote($offset));
+        } catch (Throwable $e) {
+            error_log('Could not pin the database session timezone to ' . $offset . ': ' . $e->getMessage());
+        }
     }
 
     public static function query(string $sql, array $params = []): PDOStatement

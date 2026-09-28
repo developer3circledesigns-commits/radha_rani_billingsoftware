@@ -325,6 +325,38 @@ final class Lang
         return self::datetime($datetime);
     }
 
+    /**
+     * How long until a future moment, in words.
+     *
+     * relative() deliberately clamps a negative distance to zero, so it answers
+     * "Just now" for anything in the future. That is right for an audit trail -
+     * a clock skew must not print a negative age - and useless for a deadline
+     * the owner is waiting on, which is why this exists separately rather than
+     * by loosening relative().
+     *
+     * Takes a timestamp rather than a datetime string because the caller has one:
+     * a deadline is computed in the portal timezone and re-parsing it as a
+     * string would be a second chance to get the timezone wrong.
+     */
+    public static function until(int $timestamp): string
+    {
+        $diff = $timestamp - time();
+
+        if ($diff <= 0) {
+            return self::time(date('Y-m-d H:i:s', $timestamp));
+        }
+        if ($diff < 60) {
+            return self::t('format.in_less_minute');
+        }
+        if ($diff < 3600) {
+            return self::tn('format.in_minutes', (int) floor($diff / 60));
+        }
+        if ($diff < 86400) {
+            return self::tn('format.in_hours', (int) floor($diff / 3600));
+        }
+        return self::tn('format.in_days', (int) floor($diff / 86400));
+    }
+
     // ------------------------------------------------------------------
     // Diagnostics
     // ------------------------------------------------------------------

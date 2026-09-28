@@ -413,16 +413,49 @@ try {
     $row = Database::fetch('SELECT VERSION() AS v');
     $ok('server ' . ($row['v'] ?? '?'));
 
+    // The database clock has to agree with the application clock. bills.uploaded_at
+    // defaults to CURRENT_TIMESTAMP, and daily compliance compares it against day
+    // boundaries built in PHP, so a server on UTC silently files an upload made at
+    // 01:00 local under the previous day - a branch that did upload is reported as
+    // not having, and the real alert is never raised. Database::connection() pins
+    // the session timezone; this verifies the pin actually took.
+    $dbNow  = (string) (Database::fetch('SELECT NOW() n')['n'] ?? '');
+    $dbSkew = $dbNow === '' ? null : abs(time() - (int) strtotime($dbNow));
+    if ($dbSkew === null) {
+        $warn('could not read the database clock');
+    } elseif ($dbSkew <= 120) {
+        $ok('database clock agrees with APP_TIMEZONE (' . date_default_timezone_get() . ', ' . $dbNow . ')');
+    } else {
+        $err('database clock is ' . round($dbSkew / 60) . ' min away from the application clock ('
+            . $dbNow . ' vs ' . date('Y-m-d H:i:s') . ' ' . date_default_timezone_get()
+            . ') - day boundaries and upload timestamps will disagree.');
+    }
+
     // Required tables
     $tables = array_column(
         Database::fetchAll('SHOW TABLES'),
         'Tables_in_' . DB_NAME
     );
-    foreach (['users', 'branches', 'bills', 'settings', 'audit_logs'] as $t) {
+    // The compliance tables are listed with the rest on purpose: a deploy that
+    // skipped migration 003 would otherwise pass every check here and then fail
+    // with a database error the first time an owner opens Daily Compliance.
+    foreach (['users', 'branches', 'bills', 'settings', 'audit_logs', 'notifications', 'daily_upload_checks'] as $t) {
         if (in_array($t, $tables, true)) {
             $ok("table {$t}");
         } else {
             $err("table {$t} is missing - import database/init.sql or run: php tools/migrate.php");
+        }
+    }
+
+    // The compliance dedupe index. createForOwners() relies on it to survive a
+    // cron run and a dashboard load racing on the same branch and day, so its
+    // absence is a correctness problem rather than a cosmetic one.
+    if (in_array('notifications', $tables, true)) {
+        $indexes = array_column(Database::fetchAll('SHOW INDEX FROM notifications'), 'Key_name');
+        if (in_array('uq_dedupe', $indexes, true)) {
+            $ok('notifications.uq_dedupe (one alert per owner and event)');
+        } else {
+            $err('notifications.uq_dedupe is missing - run: php tools/migrate.php');
         }
     }
 

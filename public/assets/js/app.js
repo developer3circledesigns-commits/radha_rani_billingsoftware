@@ -184,4 +184,125 @@
         const icon = btn.querySelector('i');
         if (icon) icon.className = 'bi ' + (show ? 'bi-eye-slash' : 'bi-eye');
     });
+
+    // ---------- Compliance settings: reveal the per-weekday deadline grid ----------
+    // The grid stays in the DOM when hidden, so switching modes mid-form and
+    // back does not lose what the owner typed.
+    (function () {
+        const mode = document.getElementById('c_mode');
+        const wrap = document.getElementById('weekdayWrap');
+        if (!mode || !wrap) return;
+        mode.addEventListener('change', function () {
+            wrap.hidden = mode.value !== 'per_weekday';
+        });
+    })();
+
+    // ---------- Notification bell: read on open ----------
+    // Server-rendered, so the list is already correct on load. Opening the
+    // dropdown marks what is on screen as seen, which keeps the badge honest
+    // without polling: a new alert appears on the owner's next page load.
+    //
+    // This must NOT submit the form. A form submit navigates, and the navigation
+    // tears down the dropdown that was just opened, so the menu flashed and
+    // vanished and could never be hovered. The POST goes out in the background
+    // and the visible state is updated in place instead.
+    //
+    // The endpoint and the token come from window.APP rather than from the form
+    // element: the form is only the no-JS fallback, and reading form.action
+    // depends on the browser reflecting a URL off the element.
+    (function () {
+        const bell = document.getElementById('notifBell');
+        if (!bell) return;
+
+        const badge = bell.querySelector('[data-notif-badge]');
+        if (!badge || !window.APP || typeof window.fetch !== 'function') return;
+
+        const endpoint = (APP.BASE_URL || '') + '/notifications.php';
+
+        const markVisibleRead = function () {
+            badge.hidden = true;
+            badge.classList.add('d-none');
+            badge.setAttribute('aria-hidden', 'true');
+            // The left rule on an unread row is the other read signal on screen.
+            const menu = bell.parentElement ? bell.parentElement.querySelector('.notif-menu') : null;
+            if (menu) {
+                menu.querySelectorAll('.notif-item.is-unread').forEach(function (item) {
+                    item.classList.remove('is-unread');
+                });
+            }
+        };
+
+        bell.addEventListener('show.bs.dropdown', function () {
+            // Nothing unread means nothing to record. Without this guard every
+            // click would POST, including on the empty state.
+            if (badge.hidden || badge.classList.contains('d-none')) return;
+
+            const body = new URLSearchParams();
+            body.set('csrf_token', APP.CSRF);
+            body.set('action', 'mark_all_read');
+            body.set('return_to', window.location.pathname + window.location.search);
+
+            fetch(endpoint, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: body.toString()
+            }).then(function (res) {
+                // Only a real success clears the badge. On failure it is left
+                // showing, so the owner is never told "seen" by a request the
+                // server rejected.
+                if (!res.ok) throw new Error('mark-read failed: ' + res.status);
+                return res.json();
+            }).then(function (data) {
+                if (data && data.success) markVisibleRead();
+            }).catch(function () {
+                /* leave the badge; the next page load reconciles it */
+            });
+        });
+    })();
+
+    // ---------- Refresh once the daily compliance deadline passes ----------
+    // Setting a deadline and then watching the page does nothing on its own: the
+    // sweep only runs when the dashboard is loaded or the cron happens to fire,
+    // so an alert could stay invisible for most of an hour. This arms ONE timer
+    // for the moment the check becomes due, so the page updates itself. It is
+    // deliberately not a poll - the value is null unless a check is genuinely
+    // pending, so the timer fires at most once per page view.
+    (function () {
+        const dueAt = window.APP ? APP.COMPLIANCE_DUE_AT : null;
+        if (!dueAt) return;
+
+        // A few seconds of grace, so a page loaded at HH:MM:59.8 does not reload
+        // just before the server agrees the deadline has passed.
+        const delay = (dueAt * 1000) + 3000 - Date.now();
+        if (delay <= 0) return;
+
+        // setTimeout silently fires immediately past ~24.8 days, which would
+        // reload the page at random. Far-off deadlines are the cron's problem.
+        if (delay > 2147483647) return;
+
+        const fire = function () {
+            // Never reload out from under someone who is typing: on the settings
+            // page that would silently discard a half-finished form.
+            const el = document.activeElement;
+            const busy = el && (
+                el.tagName === 'INPUT' ||
+                el.tagName === 'TEXTAREA' ||
+                el.tagName === 'SELECT' ||
+                el.isContentEditable
+            );
+            if (busy) {
+                // Try again shortly. The check is idempotent, so a late reload is
+                // harmless.
+                setTimeout(fire, 30000);
+                return;
+            }
+            window.location.reload();
+        };
+
+        setTimeout(fire, delay);
+    })();
 })();

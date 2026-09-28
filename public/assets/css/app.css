@@ -515,6 +515,97 @@ body.auth-body {
 .auth-footer { color: rgba(255, 255, 255, 0.6); font-size: 0.78rem; margin-top: 22px; }
 
 /* ============================================================
+   Daily upload compliance (owner)
+   ============================================================ */
+/* The bell badge is positioned off the corner of the icon button, so it is
+   pinned with negative offsets rather than margins; the ring in the background
+   colour keeps it legible on top of the burgundy sidebar and on the white
+   topbar. */
+.notif-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--rr-burgundy);
+    color: #fff;
+    font-size: 0.66rem;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    box-shadow: 0 0 0 2px #fff;
+}
+.sidebar .notif-badge,
+.app-sidebar .notif-badge { box-shadow: 0 0 0 2px var(--rr-burgundy); }
+
+/* Dropdown sized to the content, not to a Bootstrap default, because the
+   branch name and the missing-types line are what make an alert readable. */
+.notif-menu { width: 340px; max-width: calc(100vw - 32px); }
+.notif-list { max-height: 340px; overflow-y: auto; }
+.notif-item {
+    display: flex;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--rr-border);
+    color: var(--rr-ink);
+    text-decoration: none;
+    line-height: 1.35;
+}
+.notif-item:hover,
+.notif-item:focus { background: var(--rr-bg); color: var(--rr-ink); }
+.notif-item > i { font-size: 1rem; margin-top: 2px; }
+
+/* Severity label in the bell. Sized for the meta row rather than inheriting
+   .badge's .75em, which came out at 8.4px and unreadable inside a 0.7rem row. */
+.notif-sev {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 8px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1.5;
+}
+.notif-sev-danger  { background: rgba(160, 40, 64, 0.12); color: #a02840; }
+.notif-sev-warning { background: rgba(255, 193, 7, 0.20); color: #8a6d00; }
+.notif-sev-info    { background: rgba(37, 99, 235, 0.12); color: #1d4ed8; }
+
+/* Unread alerts carry a left rule rather than a background tint, so the
+   severity icon colour stays readable and the list still scans cleanly. */
+.notif-item.is-unread { box-shadow: inset 3px 0 0 var(--rr-burgundy); }
+.notif-item.is-resolved { opacity: 0.62; }
+.notif-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    font-size: 0.7rem;
+    color: var(--rr-muted);
+}
+.min-w-0 { min-width: 0; }
+
+/* Count next to the sidebar link, e.g. "Daily Compliance 3". */
+.sidebar-count {
+    min-width: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--rr-burgundy);
+    color: #fff;
+    font-size: 0.66rem;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+}
+
+/* Banner on the owner dashboard. Kept to a two-line lead so a bad day with
+   many failing branches pushes the KPIs down as little as possible. */
+.compliance-banner { border-left: 4px solid var(--rr-burgundy) !important; }
+.compliance-banner ul { max-height: 190px; overflow-y: auto; }
+
+/* ============================================================
    Error pages
    ============================================================ */
 body.error-body {

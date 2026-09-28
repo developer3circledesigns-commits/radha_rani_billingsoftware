@@ -98,7 +98,30 @@ function split_statements(string $sql): array
     return $statements;
 }
 
+/**
+ * MySQL error codes that mean "the thing this statement was creating is already
+ * there", which for a migration is the desired end state rather than a failure.
+ *
+ * This matters because database/init.sql is the authoritative schema and already
+ * contains everything the migration files add. A database created from it has an
+ * empty schema_migrations table, so the runner replays 001 and 002 - and 002 is a
+ * plain ALTER TABLE ... ADD COLUMN, which aborts on the first duplicate column.
+ * Without this, the documented "run php tools/migrate.php" cannot be run on a
+ * database that does not need it, which is the most common case of all.
+ *
+ * The version-agnostic alternative, ADD COLUMN IF NOT EXISTS, needs MySQL 8.0.29+
+ * and is a syntax error on the older servers shared hosting still runs, so the
+ * tolerance lives here instead of in the SQL.
+ */
+function is_benign_schema_error(PDOException $e): bool
+{
+    // 1050 table exists, 1060 duplicate column, 1061 duplicate key,
+    // 1062 duplicate entry for a unique key, 1826 duplicate foreign key.
+    return in_array($e->errorInfo[1] ?? 0, [1050, 1060, 1061, 1062, 1826], true);
+}
+
 $ran = 0;
+$skipped = 0;
 
 foreach ($files as $file) {
     $name = basename($file);
@@ -118,7 +141,15 @@ foreach ($files as $file) {
 
     try {
         foreach (split_statements($sql) as $statement) {
-            $db->exec($statement);
+            try {
+                $db->exec($statement);
+            } catch (PDOException $e) {
+                if (!is_benign_schema_error($e)) {
+                    throw $e;
+                }
+                $skipped++;
+                echo "    . already present, skipped\n";
+            }
         }
     } catch (Throwable $e) {
         echo "  ! failed: " . $e->getMessage() . "\n";
@@ -131,4 +162,5 @@ foreach ($files as $file) {
 
 echo $ran === 0
     ? "Nothing to migrate.\n"
-    : "Done. {$ran} migration(s) applied.\n";
+    : "Done. {$ran} migration(s) applied.\n"
+        . ($skipped > 0 ? "{$skipped} statement(s) were already in place.\n" : '');

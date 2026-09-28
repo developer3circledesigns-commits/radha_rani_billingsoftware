@@ -129,6 +129,17 @@ class Branch
 
     /**
      * Today's upload completion status per branch.
+     *
+     * Counts on business_date, i.e. "which documents dated D exist", which is
+     * the right question when reconciling a specific day's paperwork.
+     *
+     * It is NOT the compliance question. Compliance asks whether each branch
+     * actually submitted today, and is answered by DailyCompliance::
+     * statusForDate() on uploaded_at. The two used to be interchangeable - the
+     * owner dashboard called this method next to the compliance banner - and a
+     * branch could then satisfy one table and still be flagged in the other, so
+     * they were separated deliberately. Nothing should call this for compliance;
+     * use DailyCompliance instead.
      */
     public static function dailyUploadStatus(string $date): array
     {

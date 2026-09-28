@@ -10,7 +10,7 @@ $user = current_user();
 // ------------------------------------------------------------------
 // DELETE (soft delete a bill)
 // ------------------------------------------------------------------
-if (isPost() && get('action') === 'delete') {
+if (isPost() && (string) post('action', get('action', '')) === 'delete') {
     if (!csrf_verify()) csrf_fail();
     $billId = (int) post('id', 0);
     $bill = $billId ? Bill::find($billId) : null;
@@ -39,9 +39,34 @@ if (isPost() && get('action') === 'delete') {
 
 $stats = Branch::dashboardStats();
 $today = (string) get('today', date('Y-m-d'));
-$dailyStatus = Branch::dailyUploadStatus($today);
 $recentBills = Bill::recent([], 6);
 $uploadsByBranch = Bill::uploadsByBranch(6);
+
+/**
+ * Compliance for the day the owner is looking at.
+ *
+ * Evaluated live rather than read from stored alerts, so the banner can never
+ * contradict the Daily Upload Status table underneath it. Both read the same
+ * DailyCompliance::statusForDate() result, so there is exactly one definition of
+ * "did this branch upload today" on this page. The fallback sweep below is what
+ * makes detection work on a host where cron was never configured: the owner
+ * opening this page is itself the trigger, which is the same trick
+ * owner/trash.php:15 uses for Bill::purgeExpired().
+ */
+$compliance = DailyCompliance::statusForDate($today);
+$hasRequirement = DailyCompliance::hasRequirement();
+
+// The footer hands this to the browser so a page left open across the deadline
+// refreshes itself and the alert appears without a manual reload.
+$complianceDueAt = DailyCompliance::pendingDeadlineFor($today);
+
+/**
+ * Fallback sweep, so alerts appear without a cron. The condition lives in the
+ * model (sweepIfNeeded) because it is subtle and has to be identical everywhere:
+ * gating on "this day has not been checked yet" switches the feature off for the
+ * rest of the day as soon as a check row exists.
+ */
+DailyCompliance::sweepIfNeeded($today, $compliance);
 
 $pageTitle = t('owner.dashboard.title');
 $pageSubtitle = t('owner.dashboard.subtitle');
@@ -49,6 +74,8 @@ $activeMenu = 'dashboard';
 
 ob_start();
 ?>
+
+<?php partial('compliance_banner', ['compliance' => $compliance, 'complianceDueAt' => $complianceDueAt]); ?>
 
 <div class="row g-3 mb-3">
     <!-- KPI cards -->
@@ -113,7 +140,7 @@ ob_start();
                 </form>
             </div>
             <div class="card-body p-0">
-                <?php if (!$dailyStatus) : ?>
+                <?php if (!$compliance['branches']) : ?>
                     <div class="empty-state">
                         <i class="bi bi-buildings"></i>
                         <p class="mb-1"><?= e(t('branches.empty')) ?></p>
@@ -133,10 +160,27 @@ ob_start();
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($dailyStatus as $b) :
-                            $cashCount = (int)$b['cash_count'];
-                            $cardCount = (int)$b['card_count'];
-                            if ($cashCount > 0 && $cardCount > 0) {
+                        <?php
+                        // The counts and the verdict both come from the same
+                        // compliance result the banner above is drawn from, so
+                        // the two can never disagree. "Complete" is measured
+                        // against the payment types the owner has marked as
+                        // required rather than a hardcoded both-types rule, which
+                        // is what keeps a hotel that takes no card payments from
+                        // seeing every branch flagged forever.
+                        foreach ($compliance['branches'] as $b) :
+                            $cashCount = (int) $b['cash_count'];
+                            $cardCount = (int) $b['card_count'];
+
+                            if (!$hasRequirement) {
+                                // Nothing is required, so "compliant" only means
+                                // "nobody was ever asked". Saying "Uploaded" here
+                                // would tell the owner a bill arrived when none
+                                // did - the one thing this table must never do.
+                                $statusKey   = 'owner.status.not_required';
+                                $statusClass = 'status-empty';
+                                $statusIcon  = 'bi-dash-circle-fill';
+                            } elseif ($b['compliant']) {
                                 $statusKey   = 'owner.status.uploaded';
                                 $statusClass = 'status-uploaded';
                                 $statusIcon  = 'bi-check-circle-fill';

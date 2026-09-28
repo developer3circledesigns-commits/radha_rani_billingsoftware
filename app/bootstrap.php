@@ -48,6 +48,8 @@ require_once __DIR__ . '/models/User.php';
 require_once __DIR__ . '/models/Bill.php';
 require_once __DIR__ . '/models/AuditLog.php';
 require_once __DIR__ . '/models/Setting.php';
+require_once __DIR__ . '/models/Notification.php';
+require_once __DIR__ . '/models/DailyCompliance.php';
 require_once __DIR__ . '/validators/PdfValidator.php';
 
 // Shared hosts can drop empty folders during deployment, which would make
@@ -57,6 +59,41 @@ if (!is_dir(LOG_PATH)) {
 }
 
 // Global error/exception handler -> log, no raw output.
+
+/**
+ * Name an error level without relying on php_error_name().
+ *
+ * That function is PHP 8.4+. Calling it on an older runtime from inside the
+ * error handler threw an Error, which turned any warning in the application
+ * into a fatal - the handler took down the request it was supposed to describe.
+ */
+function bootstrap_error_name(int $severity): string
+{
+    if (function_exists('php_error_name')) {
+        return php_error_name($severity);
+    }
+
+    static $names = [
+        E_ERROR             => 'E_ERROR',
+        E_WARNING           => 'E_WARNING',
+        E_PARSE             => 'E_PARSE',
+        E_NOTICE            => 'E_NOTICE',
+        E_CORE_ERROR        => 'E_CORE_ERROR',
+        E_CORE_WARNING      => 'E_CORE_WARNING',
+        E_COMPILE_ERROR     => 'E_COMPILE_ERROR',
+        E_COMPILE_WARNING   => 'E_COMPILE_WARNING',
+        E_USER_ERROR        => 'E_USER_ERROR',
+        E_USER_WARNING      => 'E_USER_WARNING',
+        E_USER_NOTICE       => 'E_USER_NOTICE',
+        E_STRICT            => 'E_STRICT',
+        E_RECOVERABLE_ERROR => 'E_RECOVERABLE_ERROR',
+        E_DEPRECATED        => 'E_DEPRECATED',
+        E_USER_DEPRECATED   => 'E_USER_DEPRECATED',
+    ];
+
+    return $names[$severity] ?? ('E_UNKNOWN_' . $severity);
+}
+
 function bootstrap_error_handler(int $severity, string $message, string $file, int $line): void
 {
     $log = sprintf("[%s] %s in %s:%d%s", date('Y-m-d H:i:s'), $message, $file, $line, PHP_EOL);
@@ -71,7 +108,7 @@ function bootstrap_error_handler(int $severity, string $message, string $file, i
         SecurityLogger::log(SecurityLogger::APPLICATION_ERROR, [
             'error_type'  => 'php_error',
             'severity_id' => $severity,
-            'error_name'  => php_error_name($severity),
+            'error_name'  => bootstrap_error_name($severity),
             'message'     => $message,
             'file'        => $file,
             'line'        => $line,

@@ -54,6 +54,43 @@ $probes = [
     'audit.a.BILL_RESTORED'   => [],
     'audit.a.BILL_PURGED'     => [],
     'audit.a.LOGIN_DENIED'    => [],
+
+    // Daily compliance. The banner, the bell and the report page are all built
+    // from these, and the body keys are stored in notifications.body_key, so a
+    // missing one does not fail a build - it ships an alert reading
+    // "compliance.missing_card" to the owner months later.
+    'nav.daily_compliance'      => [],
+    'compliance.alert_title'    => [],
+    'compliance.missing_cash'   => [],
+    'compliance.missing_card'   => [],
+    'compliance.missing_both'   => [],
+    'compliance.missing_types'  => ['types'],
+    'compliance.missing'        => ['types'],
+    'compliance.last_upload_was' => ['when'],
+    'compliance.branch_status_title' => ['date'],
+    'compliance.required_note'  => ['types'],
+    'compliance.not_yet_enforced' => ['time'],
+    'compliance.deadline_was'   => ['time'],
+    'compliance.severity_danger' => [],
+    'compliance.severity_warning' => [],
+    'compliance.severity_info'  => [],
+    'compliance.weekday_mon'    => [],
+    'settings.compliance_enabled' => [],
+    'settings.compliance_deadline_time' => [],
+    'settings.compliance_mode'  => [],
+    'compliance.view_all' => [],
+    'compliance.view_my_uploads' => [],
+    'compliance.nothing_required' => [],
+    'compliance.open_settings' => [],
+    'owner.status.not_required' => [],
+    'settings.saved_but_no_requirement' => [],
+    'js.compliance_restored'    => [],
+    'js.compliance_partial'     => ['what'],
+    'js.compliance_partial_many' => ['what'],
+    'compliance.type_cash_short' => [],
+    'compliance.type_card_short' => [],
+    'audit.a.BILL_UPLOAD_COMPLIANCE_RESTORED' => [],
+    'audit.a.BILL_UPLOAD_COMPLIANCE_PARTIAL'  => [],
 ];
 
 foreach (array_keys(Lang::available()) as $code) {
@@ -95,6 +132,22 @@ if (tn('myuploads.count', 1) === tn('myuploads.count', 5)) {
 Lang::persist('de');
 if (tn('myuploads.count', 1) === tn('myuploads.count', 5)) {
     $failures[] = 'de: myuploads.count does not change with the count';
+}
+
+// The compliance banner is the one string where a broken plural is glaring: it
+// sits at the top of the owner dashboard, above the KPIs.
+foreach (['en', 'de'] as $code) {
+    Lang::persist($code);
+    if (tn('compliance.banner_title', 1) === tn('compliance.banner_title', 5)) {
+        $failures[] = "$code: compliance.banner_title does not branch on the branch count";
+    }
+    $one = tn('compliance.banner_title', 1, ['n' => 1, 'date' => '2026-09-28', 'deadline' => '23:30']);
+    $many = tn('compliance.banner_title', 5, ['n' => 5, 'date' => '2026-09-28', 'deadline' => '23:30']);
+    foreach (['1', '5'] as $n) {
+        if (!str_contains($n === '1' ? $one : $many, $n)) {
+            $failures[] = "$code: compliance.banner_title dropped the :n count";
+        }
+    }
 }
 
 // A missing key must degrade to the key itself and be recorded for diagnosis.

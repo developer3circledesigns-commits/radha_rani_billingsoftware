@@ -11,6 +11,10 @@ $user = current_user();
 
 $id = (int) (get('id') ?: (int) ($_POST['id'] ?? 0));
 
+// Each case below ends in api_ok()/api_error(), and api_json() exits. That exit
+// is the only thing stopping the update case from running on into the delete
+// case, so it is load-bearing: if a response helper ever stops exiting, this
+// switch has to grow explicit breaks before it can be trusted again.
 switch (method()) {
     case 'PUT':
     case 'POST':
