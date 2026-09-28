@@ -26,14 +26,14 @@ if (isPost()) {
 
     if ($action === 'restore') {
         if ($bill && $bill['status'] === 'deleted' && $bill['storage_status'] === 'none') {
-            flash_set('danger', 'Bill #' . $billId . ' can no longer be restored - its stored copies were already erased.');
+            flash_set('danger', t('trash.restore_gone', ['id' => $billId]));
         } elseif ($bill && $bill['status'] === 'deleted') {
             Bill::restore($billId);
             log_activity((int) $user['id'], $bill['branch_id'], 'BILL_RESTORED', 'bill', $billId,
                 'Restored bill #' . $billId . ' (' . $bill['original_filename'] . ')');
-            flash_set('success', 'Bill #' . $billId . ' has been restored.');
+            flash_set('success', t('trash.restored_ok', ['id' => $billId]));
         } else {
-            flash_set('danger', 'That bill could not be restored.');
+            flash_set('danger', t('trash.restore_failed'));
         }
     } elseif ($action === 'purge') {
         if ($bill && $bill['status'] === 'deleted') {
@@ -58,9 +58,9 @@ if (isPost()) {
             ]);
             log_activity((int) $user['id'], $bill['branch_id'], 'BILL_PURGED', 'bill', $billId,
                 'Permanently erased stored copies of bill #' . $billId . ' (' . $name . ')');
-            flash_set('success', 'Bill #' . $billId . ' and its stored copies were permanently erased.');
+            flash_set('success', t('trash.purged_ok', ['id' => $billId]));
         } else {
-            flash_set('danger', 'That bill could not be erased.');
+            flash_set('danger', t('trash.purge_failed'));
         }
     }
 
@@ -88,8 +88,8 @@ foreach ($filters as $k => $v) {
 }
 $baseUrl = url('owner/trash.php') . (count($qs) ? '?' . http_build_query($qs) : '');
 
-$pageTitle    = 'Recently Deleted';
-$pageSubtitle = 'Deleted bills are kept for ' . $retentionDays . ' day(s) before being erased.';
+$pageTitle    = t('trash.title');
+$pageSubtitle = t('trash.subtitle', ['days' => $retentionDays]);
 $activeMenu   = 'trash';
 
 ob_start();
@@ -98,13 +98,13 @@ ob_start();
 <?php if ($purgedNow > 0) : ?>
 <div class="alert alert-info d-flex align-items-center gap-2">
     <i class="bi bi-trash"></i>
-    <span><?= $purgedNow ?> expired bill(s) were automatically erased during this visit.</span>
+    <span><?= e(t('trash.purged_notice', ['n' => $purgedNow])) ?></span>
 </div>
 <?php endif; ?>
 
 <div class="alert alert-light border d-flex align-items-center gap-2 small">
     <i class="bi bi-info-circle text-primary"></i>
-    <span>Deleted bills move to <code>storage/archive</code> and stay restorable for <strong><?= $retentionDays ?> day(s)</strong>. After that the stored PDF copies are erased automatically; the record itself is kept for the audit trail.</span>
+    <span><?= e(t('trash.explain', ['days' => $retentionDays])) ?></span>
 </div>
 
 <!-- Filters -->
@@ -112,29 +112,29 @@ ob_start();
     <div class="card-body py-3">
         <form method="get" action="<?= url('owner/trash.php') ?>" class="row g-2 align-items-end">
             <div class="col-md-3">
-                <label class="form-label small text-muted mb-1" for="f_branch">Branch</label>
+                <label class="form-label small text-muted mb-1" for="f_branch"><?= e(t('bills.filter_branch')) ?></label>
                 <select class="form-select form-select-sm" id="f_branch" name="branch_id">
-                    <option value="">All Branches</option>
+                    <option value=""><?= e(t('common.all_branches')) ?></option>
                     <?php foreach ($branches as $b) : ?>
                         <option value="<?= $b['id'] ?>" <?= $filters['branch_id'] === (int) $b['id'] ? 'selected' : '' ?>><?= e($b['branch_name']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label small text-muted mb-1" for="f_type">Type</label>
+                <label class="form-label small text-muted mb-1" for="f_type"><?= e(t('bills.filter_type')) ?></label>
                 <select class="form-select form-select-sm" id="f_type" name="payment_type">
-                    <option value="">All / Cash / Card</option>
-                    <option value="cash" <?= $filters['payment_type'] === 'cash' ? 'selected' : '' ?>>Cash</option>
-                    <option value="card" <?= $filters['payment_type'] === 'card' ? 'selected' : '' ?>>Card</option>
+                    <option value=""><?= e(t('common.all_cash_card')) ?></option>
+                    <option value="cash" <?= $filters['payment_type'] === 'cash' ? 'selected' : '' ?>><?= e(t('common.cash')) ?></option>
+                    <option value="card" <?= $filters['payment_type'] === 'card' ? 'selected' : '' ?>><?= e(t('common.card')) ?></option>
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label small text-muted mb-1" for="f_q">Filename</label>
-                <input type="text" class="form-control form-control-sm" id="f_q" name="q" value="<?= e($filters['q'] ?? '') ?>" placeholder="Search file name…">
+                <label class="form-label small text-muted mb-1" for="f_q"><?= e(t('bills.filter_filename')) ?></label>
+                <input type="text" class="form-control form-control-sm" id="f_q" name="q" value="<?= e($filters['q'] ?? '') ?>" placeholder="<?= e(t('bills.search_placeholder')) ?>">
             </div>
             <div class="col-md-3 d-flex gap-2">
-                <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i>Apply</button>
-                <a href="<?= url('owner/trash.php') ?>" class="btn btn-sm btn-light">Reset</a>
+                <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i><?= e(t('common.filter')) ?></button>
+                <a href="<?= url('owner/trash.php') ?>" class="btn btn-sm btn-light"><?= e(t('common.reset')) ?></a>
             </div>
         </form>
     </div>
@@ -145,23 +145,23 @@ ob_start();
         <?php if (!$result['rows']) : ?>
             <div class="empty-state">
                 <i class="bi bi-trash"></i>
-                <p class="mb-1">No deleted bills.</p>
-                <p class="mb-0 text-muted">Bills you delete will appear here while they can still be restored.</p>
+                <p class="mb-1"><?= e(t('trash.empty')) ?></p>
+                <p class="mb-0 text-muted"><?= e(t('trash.empty_hint')) ?></p>
             </div>
         <?php else : ?>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th class="ps-3">Bill ID</th>
-                        <th>Document</th>
-                        <th>Branch</th>
-                        <th>Type</th>
-                        <th>Business Date</th>
-                        <th>Deleted At</th>
-                        <th>Purge In</th>
-                        <th>Copies Stored</th>
-                        <th class="pe-3 text-end">Actions</th>
+                        <th class="ps-3"><?= e(t('col.bill_id')) ?></th>
+                        <th><?= e(t('col.document')) ?></th>
+                        <th><?= e(t('common.branch')) ?></th>
+                        <th><?= e(t('col.type')) ?></th>
+                        <th><?= e(t('col.business_date')) ?></th>
+                        <th><?= e(t('col.deleted_at')) ?></th>
+                        <th><?= e(t('col.purge_in')) ?></th>
+                        <th><?= e(t('col.copies_stored')) ?></th>
+                        <th class="pe-3 text-end"><?= e(t('common.actions')) ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -186,24 +186,24 @@ ob_start();
                         <td class="small text-muted"><?= e(format_datetime($bill['deleted_at'])) ?></td>
                         <td class="small">
                             <?php if ($expired) : ?>
-                                <span class="badge bg-secondary">Erasing…</span>
+                                <span class="badge bg-secondary"><?= e(t('trash.erasing')) ?></span>
                             <?php else : ?>
-                                <span class="text-muted"><?= $remaining ?> day(s)</span>
+                                <span class="text-muted"><?= e(tn('common.days_left', $remaining)) ?></span>
                             <?php endif; ?>
                         </td>
-                        <td class="small text-muted"><?= e(str_replace('_', ' ', (string) $bill['storage_status'])) ?></td>
+                        <td class="small text-muted"><?= e(t('trash.storage_' . ((string) $bill['storage_status']))) ?></td>
                         <td class="pe-3 text-end">
                             <form method="post" action="<?= url('owner/trash.php?action=restore') ?>" class="d-inline"
-                                      data-confirm="Restore bill #<?= $bill['id'] ?>? It will return to the active bill list.">
+                                      data-confirm="<?= e(t('trash.restore_confirm', ['id' => $bill['id']])) ?>">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="id" value="<?= $bill['id'] ?>">
-                                <button type="submit" class="btn btn-xs btn-light text-success" title="Restore"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                <button type="submit" class="btn btn-xs btn-light text-success" title="<?= e(t('trash.restore')) ?>"><i class="bi bi-arrow-counterclockwise"></i></button>
                             </form>
                             <form method="post" action="<?= url('owner/trash.php?action=purge') ?>" class="d-inline"
-                                      data-confirm="Erase bill #<?= $bill['id'] ?> forever? Both the archived file and the database copy will be permanently destroyed. This cannot be undone.">
+                                      data-confirm="<?= e(t('trash.erase_confirm', ['id' => $bill['id']])) ?>">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="id" value="<?= $bill['id'] ?>">
-                                <button type="submit" class="btn btn-xs btn-light text-danger" title="Erase forever"><i class="bi bi-x-octagon"></i></button>
+                                <button type="submit" class="btn btn-xs btn-light text-danger" title="<?= e(t('trash.erase_forever')) ?>"><i class="bi bi-x-octagon"></i></button>
                             </form>
                         </td>
                     </tr>
@@ -213,7 +213,7 @@ ob_start();
         </div>
 
         <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <span class="small text-muted">Showing <?= count($result['rows']) ?> of <?= $result['count'] ?> · Page <?= $result['page'] ?> of <?= $result['pages'] ?></span>
+            <span class="small text-muted"><?= e(t('common.showing_of', ['shown' => count($result['rows']), 'total' => $result['count']])) ?> · <?= e(t('common.page_of', ['page' => $result['page'], 'pages' => $result['pages']])) ?></span>
             <?= pagination($result, $baseUrl) ?>
         </div>
         <?php endif; ?>

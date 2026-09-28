@@ -14,9 +14,9 @@ $id = (int) (get('id') ?: (int) ($_POST['id'] ?? 0));
 switch (method()) {
     case 'PUT':
     case 'POST':
-        if (!csrf_verify()) csrf_fail_api('Session token expired.');
+        if (!csrf_verify()) csrf_fail_api(t('api.csrf_expired_short'));
         $branch = $id ? Branch::find($id) : null;
-        if (!$branch) api_error('Branch not found.', 404);
+        if (!$branch) api_error(t('api.branch_not_found'), 404);
 
         $data = jsonBody() ?: $_POST;
         $data = [
@@ -28,14 +28,14 @@ switch (method()) {
             'status'      => ($data['status'] ?? $branch['status']) === 'inactive' ? 'inactive' : 'active',
         ];
         if ($data['branch_code'] === '' || $data['branch_name'] === '') {
-            api_error('Branch code and name are required.', 422);
+            api_error(t('api.branch_code_name_req'), 422);
         }
         $dup = Database::fetch('SELECT id FROM branches WHERE branch_code = ? AND id != ? AND deleted_at IS NULL', [$data['branch_code'], $id]);
-        if ($dup) api_error('Branch code already in use.', 422);
+        if ($dup) api_error(t('api.branch_code_in_use'), 422);
 
         $data['email'] = strtolower(trim((string) ($data['email'] ?? $branch['email'] ?? '')));
         if ($data['email'] !== '' && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            api_error('Enter a valid email address.', 422);
+            api_error(t('api.valid_email'), 422);
         }
 
         Branch::update($id, $data);
@@ -52,16 +52,16 @@ switch (method()) {
                 'result'          => 'success',
             ]);
         }
-        api_ok(null, 'Branch updated.');
+        api_ok(null, t('api.branch_updated'));
 
     case 'DELETE':
-        if (!csrf_verify()) csrf_fail_api('Session token expired.');
+        if (!csrf_verify()) csrf_fail_api(t('api.csrf_expired_short'));
         $branch = $id ? Branch::find($id) : null;
-        if (!$branch) api_error('Branch not found.', 404);
+        if (!$branch) api_error(t('api.branch_not_found'), 404);
         Branch::softDelete($id);
         log_activity((int) $user['id'], null, 'BRANCH_DELETED', 'branch', $id, 'API: deleted branch ' . $branch['branch_name']);
-        api_ok(null, 'Branch deleted.');
+        api_ok(null, t('api.branch_deleted'));
 
     default:
-        api_error('Method not allowed.', 405);
+        api_error(t('api.method_not_allowed'), 405);
 }

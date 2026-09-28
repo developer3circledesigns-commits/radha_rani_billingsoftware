@@ -11,7 +11,7 @@ $user = current_user();
 
 $id = (int) (get('id') ?: (int) ($_POST['id'] ?? 0));
 $bill = $id ? Bill::findActive($id) : null;
-if (!$bill) api_error('Bill not found.', 404);
+if (!$bill) api_error(t('api.bill_not_found'), 404);
 
 switch (method()) {
     case 'GET':
@@ -19,7 +19,7 @@ switch (method()) {
         break;
 
     case 'DELETE':
-        if (!csrf_verify()) csrf_fail_api('Session token expired.');
+        if (!csrf_verify()) csrf_fail_api(t('api.csrf_expired_short'));
         Bill::softDelete($id);
         SecurityLogger::log(SecurityLogger::RECORD_DELETED, [
             'entity_type'       => 'bill',
@@ -35,10 +35,10 @@ switch (method()) {
         log_activity((int) $user['id'], $bill['branch_id'], 'BILL_DELETED', 'bill', $id, 'API: deleted bill #' . $id . ' (' . $bill['original_filename'] . ')');
         api_ok(
             ['restore_until' => Bill::find($id)['purge_after'] ?? null],
-            'Bill moved to Recently Deleted. It can be restored for ' . Bill::retentionDays() . ' day(s).'
+            t('bills.moved_to_trash', ['days' => Bill::retentionDays()])
         );
         break;
 
     default:
-        api_error('Method not allowed.', 405);
+        api_error(t('api.method_not_allowed'), 405);
 }

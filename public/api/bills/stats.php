@@ -13,5 +13,5 @@ switch (method()) {
         api_ok(['stats' => Branch::dashboardStats(), 'counts' => Bill::countsByDay(date('Y-m-d', strtotime('-13 days')), date('Y-m-d'))]);
         break;
     default:
-        api_error('Method not allowed.', 405);
+        api_error(t('api.method_not_allowed'), 405);
 }

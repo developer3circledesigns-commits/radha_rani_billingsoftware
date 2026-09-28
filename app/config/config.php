@@ -137,7 +137,19 @@ define('SECURITY_LOG_FILE', LOG_PATH . '/security.log');
 define('SECURITY_LOG_MAX_BYTES', (int) env('SECURITY_LOG_MAX_BYTES', 20971520));
 
 // ------------------------------------------------------------------
-// Timezone / locale
+// Language
+// ------------------------------------------------------------------
+// The catalogue files in app/lang/ are the real source of truth for what can
+// be served; Lang::available() reads the directory. DEFAULT_LOCALE names the
+// fallback locale, which must always exist there because Lang.php falls back
+// to it for every missing key. AUTO_DETECT_LANGUAGE only affects a visitor
+// with no cookie and no session value, so an explicit choice is never
+// overridden by a browser header.
+define('DEFAULT_LOCALE', env('DEFAULT_LOCALE', 'en'));
+define('AUTO_DETECT_LANGUAGE', env('AUTO_DETECT_LANGUAGE', '1') !== '0');
+
+// ------------------------------------------------------------------
+// Timezone
 // ------------------------------------------------------------------
 date_default_timezone_set(env('APP_TIMEZONE', 'Asia/Kolkata'));
 

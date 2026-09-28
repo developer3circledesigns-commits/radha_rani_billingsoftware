@@ -8,7 +8,7 @@ $currentUser = current_user();
 $activeMenu = $activeMenu ?? '';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= e(Lang::code()) ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -30,64 +30,66 @@ $activeMenu = $activeMenu ?? '';
         </div>
 
         <?php if (($currentUser['role'] ?? '') === 'owner') : ?>
-        <nav class="sidebar-nav" aria-label="Owner navigation">
-            <div class="sidebar-section-label">Overview</div>
+        <nav class="sidebar-nav" aria-label="<?= e(t('nav.area_owner')) ?>">
+            <div class="sidebar-section-label"><?= e(t('nav.overview')) ?></div>
             <a href="<?= url('owner/dashboard.php') ?>" class="sidebar-link <?= $activeMenu === 'dashboard' ? 'active' : '' ?>">
-                <i class="bi bi-grid-1x2-fill"></i><span>Dashboard</span>
+                <i class="bi bi-grid-1x2-fill"></i><span><?= e(t('nav.dashboard')) ?></span>
             </a>
 
-            <div class="sidebar-section-label">Management</div>
+            <div class="sidebar-section-label"><?= e(t('nav.management')) ?></div>
             <a href="<?= url('owner/branches.php') ?>" class="sidebar-link <?= $activeMenu === 'branches' ? 'active' : '' ?>">
-                <i class="bi bi-buildings-fill"></i><span>Branches</span>
+                <i class="bi bi-buildings-fill"></i><span><?= e(t('nav.branches')) ?></span>
             </a>
             <a href="<?= url('owner/admins.php') ?>" class="sidebar-link <?= $activeMenu === 'admins' ? 'active' : '' ?>">
-                <i class="bi bi-person-badge-fill"></i><span>Branch Admins</span>
+                <i class="bi bi-person-badge-fill"></i><span><?= e(t('nav.branch_admins')) ?></span>
             </a>
 
-            <div class="sidebar-section-label">Documents</div>
+            <div class="sidebar-section-label"><?= e(t('nav.documents')) ?></div>
             <a href="<?= url('owner/bills.php') ?>" class="sidebar-link <?= $activeMenu === 'bills' ? 'active' : '' ?>">
-                <i class="bi bi-file-earmark-pdf-fill"></i><span>Bills</span>
+                <i class="bi bi-file-earmark-pdf-fill"></i><span><?= e(t('nav.bills')) ?></span>
             </a>
             <a href="<?= url('owner/upload-activity.php') ?>" class="sidebar-link <?= $activeMenu === 'upload-activity' ? 'active' : '' ?>">
-                <i class="bi bi-arrow-up-circle-fill"></i><span>Upload Activity</span>
+                <i class="bi bi-arrow-up-circle-fill"></i><span><?= e(t('nav.upload_activity')) ?></span>
             </a>
             <a href="<?= url('owner/trash.php') ?>" class="sidebar-link <?= $activeMenu === 'trash' ? 'active' : '' ?>">
-                <i class="bi bi-trash"></i><span>Recently Deleted</span>
+                <i class="bi bi-trash"></i><span><?= e(t('nav.recently_deleted')) ?></span>
             </a>
 
-            <div class="sidebar-section-label">System</div>
+            <div class="sidebar-section-label"><?= e(t('common.system')) ?></div>
             <a href="<?= url('owner/audit-logs.php') ?>" class="sidebar-link <?= $activeMenu === 'audit-logs' ? 'active' : '' ?>">
-                <i class="bi bi-journal-check"></i><span>Audit Logs</span>
+                <i class="bi bi-journal-check"></i><span><?= e(t('nav.audit_logs')) ?></span>
             </a>
             <a href="<?= url('owner/settings.php') ?>" class="sidebar-link <?= $activeMenu === 'settings' ? 'active' : '' ?>">
-                <i class="bi bi-gear-fill"></i><span>Settings</span>
+                <i class="bi bi-gear-fill"></i><span><?= e(t('nav.settings')) ?></span>
             </a>
         </nav>
 
         <?php else : ?>
-        <nav class="sidebar-nav" aria-label="Branch admin navigation">
-            <div class="sidebar-section-label">Overview</div>
+        <nav class="sidebar-nav" aria-label="<?= e(t('nav.area_branch')) ?>">
+            <div class="sidebar-section-label"><?= e(t('nav.overview')) ?></div>
             <a href="<?= url('branch/dashboard.php') ?>" class="sidebar-link <?= $activeMenu === 'dashboard' ? 'active' : '' ?>">
-                <i class="bi bi-grid-1x2-fill"></i><span>Dashboard</span>
+                <i class="bi bi-grid-1x2-fill"></i><span><?= e(t('nav.dashboard')) ?></span>
             </a>
 
-            <div class="sidebar-section-label">Documents</div>
+            <div class="sidebar-section-label"><?= e(t('nav.documents')) ?></div>
             <a href="<?= url('branch/upload.php') ?>" class="sidebar-link <?= $activeMenu === 'upload' ? 'active' : '' ?>">
-                <i class="bi bi-cloud-arrow-up-fill"></i><span>Upload Bills</span>
+                <i class="bi bi-cloud-arrow-up-fill"></i><span><?= e(t('nav.upload_bills')) ?></span>
             </a>
             <a href="<?= url('branch/my-uploads.php') ?>" class="sidebar-link <?= $activeMenu === 'my-uploads' ? 'active' : '' ?>">
-                <i class="bi bi-folder2-open"></i><span>My Uploads</span>
+                <i class="bi bi-folder2-open"></i><span><?= e(t('nav.my_uploads')) ?></span>
             </a>
         </nav>
         <?php endif; ?>
 
         <div class="sidebar-footer">
             <a href="<?= url('profile.php') ?>" class="sidebar-link <?= $activeMenu === 'profile' ? 'active' : '' ?>">
-                <i class="bi bi-person-circle"></i><span>Profile & Settings</span>
+                <i class="bi bi-person-circle"></i><span><?= e(t('nav.profile_settings')) ?></span>
             </a>
             <a href="<?= url('logout.php') ?>" class="sidebar-link text-danger">
-                <i class="bi bi-box-arrow-right"></i><span>Logout</span>
+                <i class="bi bi-box-arrow-right"></i><span><?= e(t('nav.logout')) ?></span>
             </a>
+
+            <?php partial('language_switcher'); ?>
         </div>
     </aside>
 
@@ -99,7 +101,7 @@ $activeMenu = $activeMenu ?? '';
 
         <!-- ======================= TOPBAR ======================= -->
         <header class="app-topbar">
-            <button class="btn btn-icon sidebar-toggler" id="sidebarToggle" aria-label="Toggle sidebar">
+            <button class="btn btn-icon sidebar-toggler" id="sidebarToggle" aria-label="<?= e(t('nav.toggle_sidebar')) ?>">
                 <i class="bi bi-list"></i>
             </button>
 
@@ -116,15 +118,15 @@ $activeMenu = $activeMenu ?? '';
                 <?php endif; ?>
 
                 <div class="dropdown">
-                    <button class="btn btn-icon dropdown-toggle-split-no-care d-flex align-items-center gap-2 topbar-user" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu">
-                        <span class="avatar avatar-sm"><?= e(strtoupper(substr($currentUser['name'] ?? '?', 0, 1))) ?></span>
+                    <button class="btn btn-icon dropdown-toggle-split-no-care d-flex align-items-center gap-2 topbar-user" data-bs-toggle="dropdown" aria-expanded="false" aria-label="<?= e(t('nav.account_menu')) ?>">
+                        <span class="avatar avatar-sm"><?= e(mb_strtoupper(mb_substr($currentUser['name'] ?? '?', 0, 1))) ?></span>
                         <span class="d-none d-lg-inline topbar-user-name"><?= e($currentUser['name'] ?? '') ?></span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><span class="dropdown-item-text small text-muted">Signed in as<br><strong><?= e($currentUser['email'] ?? '') ?></strong></span></li>
+                        <li><span class="dropdown-item-text small text-muted"><?= e(t('nav.signed_in_as')) ?><br><strong><?= e($currentUser['email'] ?? '') ?></strong></span></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="<?= url('profile.php') ?>"><i class="bi bi-person me-2"></i>Profile</a></li>
-                        <li><a class="dropdown-item text-danger" href="<?= url('logout.php') ?>"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                        <li><a class="dropdown-item" href="<?= url('profile.php') ?>"><i class="bi bi-person me-2"></i><?= e(t('nav.profile')) ?></a></li>
+                        <li><a class="dropdown-item text-danger" href="<?= url('logout.php') ?>"><i class="bi bi-box-arrow-right me-2"></i><?= e(t('nav.logout')) ?></a></li>
                     </ul>
                 </div>
             </div>
@@ -136,6 +138,6 @@ $activeMenu = $activeMenu ?? '';
             <?php foreach (flash_get() as $flash) : ?>
             <div class="alert alert-<?= e($flash['type']) ?> alert-dismissible fade show toast-flash" role="alert">
                 <i class="bi bi-info-circle me-2"></i><?= e($flash['message']) ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="<?= e(t('common.close')) ?>"></button>
             </div>
             <?php endforeach; ?>

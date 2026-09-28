@@ -31,7 +31,7 @@ if (isPost() && get('action') === 'delete') {
     ]);
 
     log_activity((int) $user['id'], $bill['branch_id'], 'BILL_DELETED', 'bill', $billId, 'Deleted bill #' . $billId . ' (' . $bill['original_filename'] . ')');
-        flash_set('success', 'Bill moved to Recently Deleted. It can be restored for ' . Bill::retentionDays() . ' day(s).');
+        flash_set('success', t('bills.moved_to_trash', ['days' => Bill::retentionDays()]));
     }
     redirect('owner/bills.php');
 }
@@ -63,8 +63,10 @@ foreach ($filters as $k => $v) {
 }
 $baseUrl = url('owner/bills.php') . (count($qs) ? '?' . http_build_query($qs) : '');
 
-$pageTitle = 'Bill Management';
-$pageSubtitle = count($result['rows']) ? $result['count'] . ' document(s) found' : 'All uploaded bill documents';
+$pageTitle = t('bills.title');
+$pageSubtitle = count($result['rows'])
+    ? tn('bills.subtitle_found', (int) $result['count'])
+    : t('bills.subtitle_all');
 $activeMenu = 'bills';
 
 ob_start();
@@ -75,46 +77,46 @@ ob_start();
     <div class="card-body py-3">
         <form method="get" action="<?= url('owner/bills.php') ?>" class="row g-2 align-items-end">
             <div class="col-md-2">
-                <label class="form-label small text-muted mb-1" for="f_branch">Branch</label>
+                <label class="form-label small text-muted mb-1" for="f_branch"><?= e(t('bills.filter_branch')) ?></label>
                 <select class="form-select form-select-sm" id="f_branch" name="branch_id">
-                    <option value="">All Branches</option>
+                    <option value=""><?= e(t('common.all_branches')) ?></option>
                     <?php foreach ($branches as $b) : ?>
                         <option value="<?= $b['id'] ?>" <?= $filters['branch_id'] === (int) $b['id'] ? 'selected' : '' ?>><?= e($b['branch_name']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
             <div class="col-md-2">
-                <label class="form-label small text-muted mb-1" for="f_type">Type</label>
+                <label class="form-label small text-muted mb-1" for="f_type"><?= e(t('bills.filter_type')) ?></label>
                 <select class="form-select form-select-sm" id="f_type" name="payment_type">
-                    <option value="">All / Cash / Card</option>
-                    <option value="cash" <?= $filters['payment_type'] === 'cash' ? 'selected' : '' ?>>Cash</option>
-                    <option value="card" <?= $filters['payment_type'] === 'card' ? 'selected' : '' ?>>Card</option>
+                    <option value=""><?= e(t('common.all_cash_card')) ?></option>
+                    <option value="cash" <?= $filters['payment_type'] === 'cash' ? 'selected' : '' ?>><?= e(t('common.cash')) ?></option>
+                    <option value="card" <?= $filters['payment_type'] === 'card' ? 'selected' : '' ?>><?= e(t('common.card')) ?></option>
                 </select>
             </div>
             <div class="col-md-2">
-                <label class="form-label small text-muted mb-1" for="f_bdate">Business Date</label>
+                <label class="form-label small text-muted mb-1" for="f_bdate"><?= e(t('bills.filter_bdate')) ?></label>
                 <input type="date" class="form-control form-control-sm" id="f_bdate" name="business_date" value="<?= e($filters['business_date'] ?? '') ?>">
             </div>
             <div class="col-md-2">
-                <label class="form-label small text-muted mb-1" for="f_udate">Upload Date</label>
+                <label class="form-label small text-muted mb-1" for="f_udate"><?= e(t('bills.filter_udate')) ?></label>
                 <input type="date" class="form-control form-control-sm" id="f_udate" name="uploaded_at" value="<?= e($filters['uploaded_at'] ?? '') ?>">
             </div>
             <div class="col-md-2">
-                <label class="form-label small text-muted mb-1" for="f_admin">Uploaded By</label>
+                <label class="form-label small text-muted mb-1" for="f_admin"><?= e(t('bills.filter_uploader')) ?></label>
                 <select class="form-select form-select-sm" id="f_admin" name="uploaded_by">
-                    <option value="">Any Admin</option>
+                    <option value=""><?= e(t('common.any_admin')) ?></option>
                     <?php foreach ($admins as $a) : ?>
                         <option value="<?= $a['id'] ?>" <?= $filters['uploaded_by'] === (int) $a['id'] ? 'selected' : '' ?>><?= e($a['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
             <div class="col-md-2">
-                <label class="form-label small text-muted mb-1" for="f_q">Filename</label>
-                <input type="text" class="form-control form-control-sm" id="f_q" name="q" value="<?= e($filters['q'] ?? '') ?>" placeholder="Search file name…">
+                <label class="form-label small text-muted mb-1" for="f_q"><?= e(t('bills.filter_filename')) ?></label>
+                <input type="text" class="form-control form-control-sm" id="f_q" name="q" value="<?= e($filters['q'] ?? '') ?>" placeholder="<?= e(t('bills.search_placeholder')) ?>">
             </div>
             <div class="col-12 d-flex gap-2 pt-2">
-                <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i>Apply Filters</button>
-                <a href="<?= url('owner/bills.php') ?>" class="btn btn-sm btn-light">Reset</a>
+                <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i><?= e(t('common.apply_filters')) ?></button>
+                <a href="<?= url('owner/bills.php') ?>" class="btn btn-sm btn-light"><?= e(t('common.reset')) ?></a>
             </div>
         </form>
     </div>
@@ -126,23 +128,23 @@ ob_start();
         <?php if (!$result['rows']) : ?>
             <div class="empty-state">
                 <i class="bi bi-file-earmark-pdf"></i>
-                <p class="mb-1">No bills found for the selected filters.</p>
-                <p class="mb-0 text-muted">Try adjusting your filters or upload a bill first.</p>
+                <p class="mb-1"><?= e(t('bills.empty')) ?></p>
+                <p class="mb-0 text-muted"><?= e(t('bills.empty_hint')) ?></p>
             </div>
         <?php else : ?>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th class="ps-3">Bill ID</th>
-                        <th>Document</th>
-                        <th>Branch</th>
-                        <th>Type</th>
-                        <th>Business Date</th>
-                        <th>File Size</th>
-                        <th>Uploaded By</th>
-                        <th>Uploaded At</th>
-                        <th class="pe-3 text-end">Actions</th>
+                        <th class="ps-3"><?= e(t('col.bill_id')) ?></th>
+                        <th><?= e(t('col.document')) ?></th>
+                        <th><?= e(t('common.branch')) ?></th>
+                        <th><?= e(t('col.type')) ?></th>
+                        <th><?= e(t('col.business_date')) ?></th>
+                        <th><?= e(t('col.file_size')) ?></th>
+                        <th><?= e(t('col.uploaded_by')) ?></th>
+                        <th><?= e(t('col.uploaded_at')) ?></th>
+                        <th class="pe-3 text-end"><?= e(t('common.actions')) ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -167,13 +169,17 @@ ob_start();
                         <td class="small"><?= e($bill['uploaded_by_name']) ?></td>
                         <td class="small text-muted"><?= e(format_datetime($bill['uploaded_at'])) ?></td>
                         <td class="pe-3 text-end">
-                            <a href="<?= url('view.php') ?>?id=<?= $bill['id'] ?>" class="btn btn-xs btn-light" title="View"><i class="bi bi-eye"></i></a>
-                            <a href="<?= url('download.php') ?>?id=<?= $bill['id'] ?>" class="btn btn-xs btn-light" title="Download"><i class="bi bi-download"></i></a>
+                            <a href="<?= url('view.php') ?>?id=<?= $bill['id'] ?>" class="btn btn-xs btn-light" title="<?= e(t('common.view')) ?>"><i class="bi bi-eye"></i></a>
+                            <a href="<?= url('download.php') ?>?id=<?= $bill['id'] ?>" class="btn btn-xs btn-light" title="<?= e(t('common.download')) ?>"><i class="bi bi-download"></i></a>
                             <form method="post" action="<?= url('owner/bills.php?action=delete') ?>" class="d-inline"
-                                      data-confirm="Delete bill #<?= $bill['id'] ?> (<?= e($bill['original_filename']) ?>)? It will move to Recently Deleted, where it stays restorable for <?= Bill::retentionDays() ?> day(s).">
+                                      data-confirm="<?= e(t('bills.delete_confirm', [
+                                          'id'       => $bill['id'],
+                                          'filename' => $bill['original_filename'],
+                                          'days'     => Bill::retentionDays(),
+                                      ])) ?>">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="id" value="<?= $bill['id'] ?>">
-                                <button type="submit" class="btn btn-xs btn-light text-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                                <button type="submit" class="btn btn-xs btn-light text-danger" title="<?= e(t('common.delete')) ?>"><i class="bi bi-trash"></i></button>
                             </form>
                         </td>
                     </tr>
@@ -183,7 +189,7 @@ ob_start();
         </div>
 
         <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <span class="small text-muted">Showing <?= count($result['rows']) ?> of <?= $result['count'] ?> · Page <?= $result['page'] ?> of <?= $result['pages'] ?></span>
+            <span class="small text-muted"><?= e(t('common.showing_of', ['shown' => count($result['rows']), 'total' => $result['count']])) ?> · <?= e(t('common.page_of', ['page' => $result['page'], 'pages' => $result['pages']])) ?></span>
             <?= pagination($result, $baseUrl) ?>
         </div>
         <?php endif; ?>

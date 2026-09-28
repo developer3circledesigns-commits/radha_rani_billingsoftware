@@ -11,7 +11,7 @@ $user = current_user();
 
 $id = (int) (get('id') ?: (int) ($_POST['id'] ?? 0));
 $admin = $id ? User::find($id) : null;
-if (!$admin || $admin['role'] !== 'branch_admin') api_error('Admin not found.', 404);
+if (!$admin || $admin['role'] !== 'branch_admin') api_error(t('api.admin_not_found'), 404);
 
 switch (method()) {
     case 'GET':
@@ -20,7 +20,7 @@ switch (method()) {
 
     case 'PUT':
     case 'POST':
-        if (!csrf_verify()) csrf_fail_api('Session token expired.');
+        if (!csrf_verify()) csrf_fail_api(t('api.csrf_expired_short'));
         $data = jsonBody() ?: $_POST;
         $name     = trim((string) ($data['name'] ?? $admin['name']));
         $email    = strtolower(trim((string) ($data['email'] ?? $admin['email'])));
@@ -28,16 +28,16 @@ switch (method()) {
         $branchId = (int) ($data['branch_id'] ?? $admin['branch_id']);
         $status   = ($data['status'] ?? $admin['status']) === 'inactive' ? 'inactive' : 'active';
 
-        if ($name === '') api_error('Full name is required.', 422);
-        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) api_error('Enter a valid email address.', 422);
-        if ($username === '') api_error('Username is required.', 422);
-        if ($branchId <= 0 || !Branch::find($branchId)) api_error('Select a valid branch.', 422);
+        if ($name === '') api_error(t('api.name_required'), 422);
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) api_error(t('api.valid_email'), 422);
+        if ($username === '') api_error(t('api.username_required'), 422);
+        if ($branchId <= 0 || !Branch::find($branchId)) api_error(t('api.select_valid_branch'), 422);
 
         $dup = Database::fetch(
             'SELECT id FROM users WHERE (LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?)) AND id != ? AND deleted_at IS NULL',
             [$email, $username, $id]
         );
-        if ($dup) api_error('Email or username already in use.', 422);
+        if ($dup) api_error(t('api.creds_in_use'), 422);
 
         User::update($id, [
             'branch_id' => $branchId,
@@ -65,16 +65,16 @@ switch (method()) {
                 'result'          => 'success',
             ]);
         }
-        api_ok(null, 'Admin updated.');
+        api_ok(null, t('api.admin_updated'));
         break;
 
     case 'DELETE':
-        if (!csrf_verify()) csrf_fail_api('Session token expired.');
+        if (!csrf_verify()) csrf_fail_api(t('api.csrf_expired_short'));
         User::softDelete($id);
         log_activity((int) $user['id'], $admin['branch_id'], 'ADMIN_DELETED', 'user', $id, 'API: deleted admin ' . $admin['name'], $admin);
-        api_ok(null, 'Admin deleted.');
+        api_ok(null, t('api.admin_deleted'));
         break;
 
     default:
-        api_error('Method not allowed.', 405);
+        api_error(t('api.method_not_allowed'), 405);
 }

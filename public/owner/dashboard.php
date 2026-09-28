@@ -31,7 +31,7 @@ if (isPost() && get('action') === 'delete') {
     ]);
 
     log_activity((int) $user['id'], $bill['branch_id'], 'BILL_DELETED', 'bill', $billId, 'Deleted bill #' . $billId . ' (' . $bill['original_filename'] . ')');
-        flash_set('success', 'Bill moved to Recently Deleted. It can be restored for ' . Bill::retentionDays() . ' day(s).');
+        flash_set('success', t('bills.moved_to_trash', ['days' => Bill::retentionDays()]));
     }
     $todayParam = (string) get('today', '');
     redirect('owner/dashboard.php' . ($todayParam ? '?today=' . urlencode($todayParam) : ''));
@@ -43,8 +43,8 @@ $dailyStatus = Branch::dailyUploadStatus($today);
 $recentBills = Bill::recent([], 6);
 $uploadsByBranch = Bill::uploadsByBranch(6);
 
-$pageTitle = 'Dashboard';
-$pageSubtitle = 'Organization overview';
+$pageTitle = t('owner.dashboard.title');
+$pageSubtitle = t('owner.dashboard.subtitle');
 $activeMenu = 'dashboard';
 
 ob_start();
@@ -58,8 +58,8 @@ ob_start();
                 <div class="kpi-icon bg-burgundy-subtle"><i class="bi bi-buildings text-burgundy"></i></div>
                 <div>
                     <div class="kpi-value"><?= (int)$stats['total_branches'] ?></div>
-                    <div class="kpi-label">Total Branches</div>
-                    <div class="kpi-sub"><?= (int)$stats['active_branches'] ?> active</div>
+                    <div class="kpi-label"><?= e(t('owner.kpi.total_branches')) ?></div>
+                    <div class="kpi-sub"><?= e(t('owner.kpi.total_branches_sub', ['n' => (int) $stats['active_branches']])) ?></div>
                 </div>
             </div>
         </div>
@@ -70,8 +70,8 @@ ob_start();
                 <div class="kpi-icon bg-gold-subtle"><i class="bi bi-person-badge text-gold"></i></div>
                 <div>
                     <div class="kpi-value"><?= (int)$stats['total_admins'] ?></div>
-                    <div class="kpi-label">Branch Admins</div>
-                    <div class="kpi-sub"><?= (int)$stats['active_admins'] ?> active</div>
+                    <div class="kpi-label"><?= e(t('owner.kpi.branch_admins')) ?></div>
+                    <div class="kpi-sub"><?= e(t('owner.kpi.branch_admins_sub', ['n' => (int) $stats['active_admins']])) ?></div>
                 </div>
             </div>
         </div>
@@ -82,8 +82,8 @@ ob_start();
                 <div class="kpi-icon bg-cash-subtle"><i class="bi bi-file-earmark-pdf text-cash"></i></div>
                 <div>
                     <div class="kpi-value"><?= (int)$stats['today_bills'] ?></div>
-                    <div class="kpi-label">Today's Uploads</div>
-                    <div class="kpi-sub"><?= (int)$stats['today_cash'] ?> cash · <?= (int)$stats['today_card'] ?> card</div>
+                    <div class="kpi-label"><?= e(t('owner.kpi.todays_uploads')) ?></div>
+                    <div class="kpi-sub"><?= e(t('owner.kpi.cash_card', ['cash' => (int) $stats['today_cash'], 'card' => (int) $stats['today_card']])) ?></div>
                 </div>
             </div>
         </div>
@@ -94,8 +94,8 @@ ob_start();
                 <div class="kpi-icon bg-muted-subtle"><i class="bi bi-archive text-muted"></i></div>
                 <div>
                     <div class="kpi-value"><?= (int)$stats['total_bills'] ?></div>
-                    <div class="kpi-label">Stored Documents</div>
-                    <div class="kpi-sub">All branches</div>
+                    <div class="kpi-label"><?= e(t('owner.kpi.stored_documents')) ?></div>
+                    <div class="kpi-sub"><?= e(t('owner.kpi.stored_documents_sub')) ?></div>
                 </div>
             </div>
         </div>
@@ -107,29 +107,29 @@ ob_start();
     <div class="col-xl-7">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <h5 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>Daily Upload Status</h5>
+                <h5 class="mb-0"><i class="bi bi-clipboard-check me-2"></i><?= e(t('owner.daily_status.title')) ?></h5>
                 <form method="get" action="<?= url('owner/dashboard.php') ?>" class="d-flex align-items-center gap-2">
-                    <input type="date" class="form-control form-control-sm" name="today" value="<?= e($today) ?>" onchange="this.form.submit()" aria-label="Select date">
+                    <input type="date" class="form-control form-control-sm" name="today" value="<?= e($today) ?>" onchange="this.form.submit()" aria-label="<?= e(t('owner.daily_status.select_date')) ?>">
                 </form>
             </div>
             <div class="card-body p-0">
                 <?php if (!$dailyStatus) : ?>
                     <div class="empty-state">
                         <i class="bi bi-buildings"></i>
-                        <p class="mb-1">No branches found.</p>
-                        <p class="mb-2 text-muted">Create your first branch to get started.</p>
-                        <a href="<?= url('owner/branches.php?action=create') ?>" class="btn btn-sm btn-primary">Create Branch</a>
+                        <p class="mb-1"><?= e(t('branches.empty')) ?></p>
+                        <p class="mb-2 text-muted"><?= e(t('branches.empty_hint')) ?></p>
+                        <a href="<?= url('owner/branches.php?action=create') ?>" class="btn btn-sm btn-primary"><?= e(t('branches.create')) ?></a>
                     </div>
                 <?php else : ?>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th class="ps-3">Branch</th>
-                                <th class="text-center">Cash</th>
-                                <th class="text-center">Card</th>
-                                <th>Latest Upload</th>
-                                <th class="pe-3">Status</th>
+                                <th class="ps-3"><?= e(t('common.branch')) ?></th>
+                                <th class="text-center"><?= e(t('common.cash')) ?></th>
+                                <th class="text-center"><?= e(t('common.card')) ?></th>
+                                <th><?= e(t('col.last_upload')) ?></th>
+                                <th class="pe-3"><?= e(t('common.status')) ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -137,17 +137,17 @@ ob_start();
                             $cashCount = (int)$b['cash_count'];
                             $cardCount = (int)$b['card_count'];
                             if ($cashCount > 0 && $cardCount > 0) {
-                                $statusLabel = 'Uploaded';
+                                $statusKey   = 'owner.status.uploaded';
                                 $statusClass = 'status-uploaded';
-                                $statusIcon = 'bi-check-circle-fill';
+                                $statusIcon  = 'bi-check-circle-fill';
                             } elseif ($cashCount > 0 || $cardCount > 0) {
-                                $statusLabel = 'Partial';
+                                $statusKey   = 'owner.status.partial';
                                 $statusClass = 'status-partial';
-                                $statusIcon = 'bi-exclamation-triangle-fill';
+                                $statusIcon  = 'bi-exclamation-triangle-fill';
                             } else {
-                                $statusLabel = 'No Upload';
+                                $statusKey   = 'owner.status.no_upload';
                                 $statusClass = 'status-empty';
-                                $statusIcon = 'bi-x-circle-fill';
+                                $statusIcon  = 'bi-x-circle-fill';
                             }
                         ?>
                             <tr>
@@ -158,7 +158,7 @@ ob_start();
                                 <td class="text-center"><span class="fw-semibold text-cash"><?= $cashCount ?></span></td>
                                 <td class="text-center"><span class="fw-semibold text-card"><?= $cardCount ?></span></td>
                                 <td class="text-muted small"><?= e(format_datetime($b['last_upload'] ?? null)) ?></td>
-                                <td class="pe-3"><span class="status-pill <?= $statusClass ?>"><i class="bi <?= $statusIcon ?> me-1"></i><?= $statusLabel ?></span></td>
+                                <td class="pe-3"><span class="status-pill <?= $statusClass ?>"><i class="bi <?= $statusIcon ?> me-1"></i><?= e(t($statusKey)) ?></span></td>
                             </tr>
                         <?php endforeach; ?>
                         </tbody>
@@ -173,11 +173,11 @@ ob_start();
     <div class="col-xl-5">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-header bg-white py-3">
-                <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Uploads by Branch</h5>
+                <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i><?= e(t('owner.by_branch.title')) ?></h5>
             </div>
             <div class="card-body">
                 <?php if (!$uploadsByBranch) : ?>
-                    <div class="empty-state"><i class="bi bi-bar-chart"></i><p class="mb-0">No data yet.</p></div>
+                    <div class="empty-state"><i class="bi bi-bar-chart"></i><p class="mb-0"><?= e(t('owner.by_branch.no_data')) ?></p></div>
                 <?php else :
                     $max = max(array_map(fn($r) => (int)$r['total'], $uploadsByBranch));
                     $max = $max > 0 ? $max : 1;
@@ -187,14 +187,14 @@ ob_start();
                     <div class="chart-row">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <span class="small fw-semibold"><?= e($r['branch_name']) ?></span>
-                            <span class="small text-muted"><?= (int)$r['total'] ?> docs</span>
+                            <span class="small text-muted"><?= e(tn('owner.by_branch.docs', (int) $r['total'])) ?></span>
                         </div>
                         <div class="progress" style="height:8px">
                             <div class="progress-bar bg-burgundy" style="width: <?= round(((int)$r['total'] / $max) * 100) ?>%"></div>
                         </div>
                         <div class="d-flex gap-3 mt-1 small text-muted">
-                            <span class="text-cash"><i class="bi bi-circle-fill me-1"></i>Cash <?= (int)$r['cash'] ?></span>
-                            <span class="text-card"><i class="bi bi-circle-fill me-1"></i>Card <?= (int)$r['card'] ?></span>
+                            <span class="text-cash"><i class="bi bi-circle-fill me-1"></i><?= e(t('common.cash')) ?> <?= (int)$r['cash'] ?></span>
+                            <span class="text-card"><i class="bi bi-circle-fill me-1"></i><?= e(t('common.card')) ?> <?= (int)$r['card'] ?></span>
                         </div>
                     </div>
                     <?php endforeach; ?>
@@ -210,27 +210,27 @@ ob_start();
     <div class="col-12">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Uploads</h5>
-                <a href="<?= url('owner/bills.php') ?>" class="btn btn-sm btn-outline-primary">View all</a>
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i><?= e(t('owner.recent_uploads.title')) ?></h5>
+                <a href="<?= url('owner/bills.php') ?>" class="btn btn-sm btn-outline-primary"><?= e(t('owner.recent_uploads.view_all')) ?></a>
             </div>
             <div class="card-body p-0">
                 <?php if (!$recentBills) : ?>
                     <div class="empty-state">
                         <i class="bi bi-folder2-open"></i>
-                        <p class="mb-0">No bills uploaded yet.</p>
+                        <p class="mb-0"><?= e(t('owner.recent_uploads.empty')) ?></p>
                     </div>
                 <?php else : ?>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th class="ps-3">Document</th>
-                                <th>Branch</th>
-                                <th>Type</th>
-                                <th>Business Date</th>
-                                <th>Uploaded By</th>
-                                <th>Uploaded At</th>
-                                <th class="pe-3">Actions</th>
+                                <th class="ps-3"><?= e(t('col.document')) ?></th>
+                                <th><?= e(t('common.branch')) ?></th>
+                                <th><?= e(t('col.type')) ?></th>
+                                <th><?= e(t('col.business_date')) ?></th>
+                                <th><?= e(t('col.uploaded_by')) ?></th>
+                                <th><?= e(t('col.uploaded_at')) ?></th>
+                                <th class="pe-3"><?= e(t('common.actions')) ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -248,13 +248,17 @@ ob_start();
                                 <td class="small"><?= e($bill['uploaded_by_name']) ?></td>
                                 <td class="small text-muted"><?= e(format_datetime($bill['uploaded_at'])) ?></td>
                                 <td class="pe-3">
-                                    <a href="<?= url('view.php') ?>?id=<?= $bill['id'] ?>" class="btn btn-xs btn-light" title="View"><i class="bi bi-eye"></i></a>
-                                    <a href="<?= url('download.php') ?>?id=<?= $bill['id'] ?>" class="btn btn-xs btn-light" title="Download"><i class="bi bi-download"></i></a>
+                                    <a href="<?= url('view.php') ?>?id=<?= $bill['id'] ?>" class="btn btn-xs btn-light" title="<?= e(t('common.view')) ?>"><i class="bi bi-eye"></i></a>
+                                    <a href="<?= url('download.php') ?>?id=<?= $bill['id'] ?>" class="btn btn-xs btn-light" title="<?= e(t('common.download')) ?>"><i class="bi bi-download"></i></a>
                                     <form method="post" action="<?= url('owner/dashboard.php?action=delete') ?>" class="d-inline"
-                                          data-confirm="Delete bill #<?= $bill['id'] ?> (<?= e($bill['original_filename']) ?>)? It will move to Recently Deleted, where it stays restorable for <?= Bill::retentionDays() ?> day(s).">
+                                          data-confirm="<?= e(t('bills.delete_confirm', [
+                                              'id'       => $bill['id'],
+                                              'filename' => $bill['original_filename'],
+                                              'days'     => Bill::retentionDays(),
+                                          ])) ?>">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="id" value="<?= $bill['id'] ?>">
-                                        <button type="submit" class="btn btn-xs btn-light text-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                                        <button type="submit" class="btn btn-xs btn-light text-danger" title="<?= e(t('common.delete')) ?>"><i class="bi bi-trash"></i></button>
                                     </form>
                                 </td>
                             </tr>

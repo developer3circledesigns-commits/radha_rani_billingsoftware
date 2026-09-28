@@ -1,6 +1,6 @@
-<?php $pageTitle = 'Session expired'; ?>
+<?php $pageTitle = t('error.419.title'); ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= e(Lang::code()) ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,10 +14,10 @@
 <body class="error-body">
     <div class="error-wrap">
         <div class="error-code">419</div>
-        <h1 class="error-title">Session expired</h1>
-        <p class="error-message">Your session has timed out. Please sign in again to continue. Your request was not completed.</p>
+        <h1 class="error-title"><?= e(t('error.419.heading')) ?></h1>
+        <p class="error-message"><?= e(t('error.419.message')) ?></p>
         <div class="error-actions">
-            <a class="btn btn-primary" href="<?= url('login.php') ?>"><i class="bi bi-box-arrow-in-right me-2"></i>Sign in again</a>
+            <a class="btn btn-primary" href="<?= url('login.php') ?>"><i class="bi bi-box-arrow-in-right me-2"></i><?= e(t('error.419.again')) ?></a>
         </div>
     </div>
 </body>

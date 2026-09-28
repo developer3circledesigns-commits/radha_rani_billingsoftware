@@ -30,8 +30,7 @@ if (isPost()) {
     // Login throttling
     if (strlen($username)) {
         if (!throttle_allow_login($username)) {
-            $lockMins = LOGIN_LOCKOUT_MINUTES;
-            flash_set('danger', "Too many failed attempts. Account locked for {$lockMins} minutes. Please try again later.");
+            flash_set('danger', t('auth.too_many_attempts', ['mins' => LOGIN_LOCKOUT_MINUTES]));
             redirect('login.php');
         }
     }
@@ -42,7 +41,7 @@ if (isPost()) {
             'field'       => $username === '' ? 'login' : 'password',
             'result'      => 'rejected',
         ]);
-        flash_set('danger', 'Please enter both login ID and password.');
+        flash_set('danger', t('auth.enter_both'));
         $old['login'] = $username;
         redirect('login.php');
     }
@@ -52,13 +51,13 @@ if (isPost()) {
     if ($userRow && password_verify($password, $userRow['password_hash'])) {
         if ($userRow['status'] !== 'active') {
             log_activity($userRow['id'], $userRow['branch_id'], 'LOGIN_DENIED', 'user', $userRow['id'], 'Inactive account attempted login');
-            flash_set('danger', 'This account is inactive. Contact the administrator.');
+            flash_set('danger', t('auth.account_inactive'));
             redirect('login.php');
         }
 
         if ($userRow['role'] === 'branch_admin' && $userRow['branch_status'] !== 'active') {
             log_activity($userRow['id'], $userRow['branch_id'], 'LOGIN_DENIED', 'user', $userRow['id'], 'Inactive branch attempted login');
-            flash_set('danger', 'The branch associated with this account is inactive. Contact the administrator.');
+            flash_set('danger', t('auth.branch_inactive'));
             redirect('login.php');
         }
 
@@ -78,7 +77,7 @@ if (isPost()) {
         // login_success by security_log_from_audit_action().
         log_activity((int) $userRow['id'], $userRow['branch_id'], 'LOGIN', 'user', (int) $userRow['id'], 'Login successful');
 
-        flash_set('success', 'Welcome back, ' . $userRow['name'] . '!');
+        flash_set('success', t('auth.welcome_back', ['name' => $userRow['name']]));
         redirect($userRow['role'] === 'owner' ? 'owner/dashboard.php' : 'branch/dashboard.php');
     }
 
@@ -100,18 +99,18 @@ if (isPost()) {
     }
     $attempts = throttle_register_failure($username);
 
-    flash_set('danger', 'Invalid login ID or password.');
+    flash_set('danger', t('auth.invalid_credentials'));
     $old['login'] = $username;
     redirect('login.php');
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= e(Lang::code()) ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Sign in · <?= e(APP_NAME) ?></title>
+    <title><?= e(t('login.title')) ?> · <?= e(APP_NAME) ?></title>
     <link rel="icon" type="image/png" href="<?= url('assets/images/logo.png') ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -409,21 +408,20 @@ if (isPost()) {
         
         <nav class="l1-nav-links" aria-label="Portal links">
             <!-- <a href="#portal">The Portal</a> -->
-            <a href="<?= url('login.php') ?>" class="l1-cta">Sign in</a>
+            <a href="<?= url('login.php') ?>" class="l1-cta"><?= e(t('login.link_sign_in')) ?></a>
         </nav>
     </div>
 
     <div class="l1-copy" id="portal">
         <!-- <p class="l1-overline">The Branch Bill Portal</p> -->
-        <h1>Every branch, every bill —<br><em>one calm dashboard.</em></h1>
+        <h1><?= e(t('login.brand_headline_1')) ?><br><em><?= e(t('login.brand_headline_2')) ?></em></h1>
         <p class="l1-lead">
-            Radha Rani Hotel gathers daily cash and card bill PDFs from every branch,
-            securely archived, audited, and ready the moment you need to review them.
+            <?= e(t('login.brand_lead')) ?>
         </p>
         <ul class="l1-features">
-            <li><i class="bi bi-check2"></i>Drag-and-drop PDF upload from any branch</li>
-            <li><i class="bi bi-check2"></i>Cash &amp; card billing captured daily</li>
-            <li><i class="bi bi-check2"></i>Audit trail on every sign-in and upload</li>
+            <li><i class="bi bi-check2"></i><?= e(t('login.feature_1')) ?></li>
+            <li><i class="bi bi-check2"></i><?= e(t('login.feature_2')) ?></li>
+            <li><i class="bi bi-check2"></i><?= e(t('login.feature_3')) ?></li>
         </ul>
         <!-- <figure class="l1-quote">
             <blockquote>"One place for the whole hotel ledger — no more chasing branch emails."</blockquote>
@@ -432,9 +430,9 @@ if (isPost()) {
     </div>
 
     <div class="l1-stats">
-        <div><span>100%<i class="bi bi-check-circle-fill"></i></span><small>Digital archive</small></div>
-        <div><span>24/7</span><small>Branch access</small></div>
-        <div><span>1</span><small>Unified dashboard</small></div>
+        <div><span>100%<i class="bi bi-check-circle-fill"></i></span><small><?= e(t('login.stat_1')) ?></small></div>
+        <div><span>24/7</span><small><?= e(t('login.stat_2')) ?></small></div>
+        <div><span>1</span><small><?= e(t('login.stat_3')) ?></small></div>
     </div>
 </aside>
 
@@ -444,8 +442,8 @@ if (isPost()) {
             <img src="<?= url('assets/images/logo.png') ?>" alt="Radha Rani Hotel logo">
         </a>
     <div class="l1-card">
-        <h2>Sign in</h2>
-        <p class="l1-card-sub">Use your portal credentials below.</p>
+        <h2><?= e(t('login.heading')) ?></h2>
+        <p class="l1-card-sub"><?= e(t('login.subheading')) ?></p>
 
         <?php foreach (flash_get() as $flash) : ?>
         <div class="alert alert-<?= e($flash['type']) ?> py-2 small" role="alert">
@@ -456,7 +454,7 @@ if (isPost()) {
         <form method="post" action="<?= url('login.php') ?>" novalidate>
             <?= csrf_field() ?>
             <div class="mb-3">
-                <label for="login" class="form-label">Email or username</label>
+                <label for="login" class="form-label"><?= e(t('login.email_or_username')) ?></label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-person"></i></span>
                     <input type="text" class="form-control" id="login" name="login"
@@ -464,16 +462,16 @@ if (isPost()) {
                 </div>
             </div>
             <div class="mb-4">
-                <label for="password" class="form-label">Password</label>
+                <label for="password" class="form-label"><?= e(t('login.password')) ?></label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-lock"></i></span>
                     <input type="password" class="form-control" id="password" name="password"
                            placeholder="••••••••" required autocomplete="current-password">
-                    <button class="btn btn-outline-secondary" type="button" data-pw-toggle="password" aria-label="Show password"><i class="bi bi-eye"></i></button>
+                    <button class="btn btn-outline-secondary" type="button" data-pw-toggle="password" aria-label="<?= e(t('form.show_password')) ?>"><i class="bi bi-eye"></i></button>
                 </div>
             </div>
             <button type="submit" class="btn l1-submit w-100 btn-lg">
-                <i class="bi bi-box-arrow-in-right me-2"></i>Sign in
+                <i class="bi bi-box-arrow-in-right me-2"></i><?= e(t('login.submit')) ?>
             </button>
         </form>
 
@@ -493,6 +491,10 @@ if (isPost()) {
 
     <p class="l1-foot">© <?= date('Y') ?> <?= e(APP_ORG) ?> · Secure document portal</p> -->
 </main>
+
+<div class="l1-lang">
+    <?php partial('language_switcher'); ?>
+</div>
 
 <script src="<?= url('assets/js/app.js') ?>"></script>
 </body>

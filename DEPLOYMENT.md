@@ -17,6 +17,7 @@ public_html/            ← the repository root, deployed as-is
 ├── .htaccess           ← root guard (blocks app/, storage/, database/ …)
 ├── app/                ← PHP application
 ├── database/           ← schema + migrations
+├── app/lang/           ← en.php, de.php (UI catalogues, must be uploaded)
 ├── public/             ← login.php, index.php, owner/, branch/, api/, assets/
 ├── storage/            ← uploads, archive, logs (must be writable)
 ├── tools/              ← CLI utilities (cron jobs)
@@ -243,6 +244,10 @@ Never use `777`.
 **hPanel → Select PHP Version → PHP 8.0 or newer** (8.1/8.2 recommended), then
 **Extensions**: enable `pdo_mysql`, `fileinfo`, `mbstring`, `json`.
 
+> `intl` is **not** required. Month and day names for English and German live in
+> `app/lang/*.php`, so the portal translates dates and numbers on any host without
+> the extension.
+
 `public/.user.ini` already raises the limits and is the shared-hosting-safe way to do
 it. hPanel's own values **override** `.user.ini`, so if you change anything in
 **PHP Settings**, keep it at least as large:
@@ -342,6 +347,36 @@ Then confirm in a browser:
 2. Owner login works and the dashboard loads
 3. Upload a PDF as a branch admin → it appears in Bills and opens in the viewer
 4. Owner → **Recently Deleted** shows the new page; delete and restore a bill
+5. Switch the language in the sidebar → the UI changes, a reload keeps it
+   (this writes the `rr_lang` cookie), and `<html lang="de">` is set
+6. `php tools/check-i18n.php` reports `0 issue(s)` for every catalogue
+
+---
+
+## 10. Language configuration
+
+English (`en`) and German (`de`) ship with the portal. Nothing has to be configured
+for either to work; the switcher is in the sidebar and on the login page.
+
+Two optional environment variables in `app/config/config.php` change the defaults:
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `DEFAULT_LOCALE` | `en` | Fallback for missing keys and visitors with no stored preference. |
+| `AUTO_DETECT_LANGUAGE` | `1` | Set to `0` to ignore the browser's `Accept-Language` header. |
+
+To make German the site default, set `DEFAULT_LOCALE=de` in the host environment. To
+stop auto-detecting and require the cookie, set `AUTO_DETECT_LANGUAGE=0`.
+
+Language files live in `app/lang/` and **must be uploaded** — the root `.htaccess`
+blocks the `app/` directory from the web, which is intended, so a missing
+`app/lang/de.php` shows English rather than an error.
+
+Verify the catalogues after any edit:
+
+```bash
+php tools/check-i18n.php
+```
 
 ---
 
@@ -356,6 +391,8 @@ Then confirm in a browser:
 | `bills.pdf_bytes` missing | Schema predates dual storage | `php tools/migrate.php` |
 | Large uploads rejected | `max_allowed_packet` too small | Expected — see section 6; lower Settings → Maximum PDF Size |
 | No PDF data being stored | `config.local.php` DB password wrong, old DB still selected | Confirm `DB_NAME` points at the imported database |
+| Language switch does nothing | `app/lang/` not uploaded | Upload the directory; it is blocked from the web on purpose |
+| Language resets on every page | `rr_lang` cookie blocked by the browser | Confirm cookies are allowed on the subdomain; a third-party-cookie block silently drops it |
 | `Unknown data type: 'TIMESTAM...'` on import | phpMyAdmin's SQL linter mangling a `TIMESTAMP` column | Already fixed in `database/init.sql` — use `DATETIME` throughout. Pull the latest commit, or use the **Import** tab rather than pasting into the SQL box |
 | Import "succeeds" but login says invalid credentials | Schema imported without the owner row | Re-import `database/init.sql`; it seeds the owner (`owner` / `Owner@123`) — then change the password in Profile |
 

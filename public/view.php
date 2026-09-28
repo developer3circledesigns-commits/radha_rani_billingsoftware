@@ -61,16 +61,16 @@ log_activity((int) $user['id'], $user['branch_id'], 'BILL_VIEWED', 'bill', $bill
 $branch = Branch::find((int) $bill['branch_id']);
 $uploader = User::find((int) $bill['uploaded_by']);
 
-$pageTitle = 'Bill Document';
+$pageTitle = t('view.title');
 $pageSubtitle = $bill['original_filename'];
 $activeMenu = $user['role'] === 'owner' ? 'bills' : 'my-uploads';
 
 ob_start();
 ?>
 <div class="mb-3">
-    <a href="javascript:history.back()" class="btn btn-light btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    <a href="javascript:history.back()" class="btn btn-light btn-sm"><i class="bi bi-arrow-left me-1"></i><?= e(t('view.back')) ?></a>
     <?php if ($user['role'] === 'owner') : ?>
-    <a href="<?= url('download.php') ?>?id=<?= $bill['id'] ?>" class="btn btn-outline-primary btn-sm"><i class="bi bi-download me-1"></i>Download</a>
+    <a href="<?= url('download.php') ?>?id=<?= $bill['id'] ?>" class="btn btn-outline-primary btn-sm"><i class="bi bi-download me-1"></i><?= e(t('common.download')) ?></a>
     <?php endif; ?>
 </div>
 
@@ -87,18 +87,18 @@ ob_start();
                 </div>
                 <hr>
                 <dl class="row mb-0 small">
-                    <dt class="col-6 text-muted">Bill ID</dt><dd class="col-6 text-end mb-2">#<?= $bill['id'] ?></dd>
-                    <dt class="col-6 text-muted">Branch</dt><dd class="col-6 text-end mb-2"><?= e($branch['branch_name'] ?? '—') ?></dd>
-                    <dt class="col-6 text-muted">Payment type</dt><dd class="col-6 text-end mb-2"><?= payment_type_badge($bill['payment_type']) ?></dd>
-                    <dt class="col-6 text-muted">Business date</dt><dd class="col-6 text-end mb-2"><?= e(format_date($bill['business_date'])) ?></dd>
-                    <dt class="col-6 text-muted">Uploaded by</dt><dd class="col-6 text-end mb-2"><?= e($uploader['name'] ?? '—') ?></dd>
-                    <dt class="col-6 text-muted">Uploaded at</dt><dd class="col-6 text-end mb-2"><?= e(format_datetime($bill['uploaded_at'])) ?></dd>
+                    <dt class="col-6 text-muted"><?= e(t('col.bill_id')) ?></dt><dd class="col-6 text-end mb-2">#<?= $bill['id'] ?></dd>
+                    <dt class="col-6 text-muted"><?= e(t('common.branch')) ?></dt><dd class="col-6 text-end mb-2"><?= e($branch['branch_name'] ?? '—') ?></dd>
+                    <dt class="col-6 text-muted"><?= e(t('col.payment_type')) ?></dt><dd class="col-6 text-end mb-2"><?= payment_type_badge($bill['payment_type']) ?></dd>
+                    <dt class="col-6 text-muted"><?= e(t('col.business_date')) ?></dt><dd class="col-6 text-end mb-2"><?= e(format_date($bill['business_date'])) ?></dd>
+                    <dt class="col-6 text-muted"><?= e(t('col.uploaded_by')) ?></dt><dd class="col-6 text-end mb-2"><?= e($uploader['name'] ?? '—') ?></dd>
+                    <dt class="col-6 text-muted"><?= e(t('col.uploaded_at')) ?></dt><dd class="col-6 text-end mb-2"><?= e(format_datetime($bill['uploaded_at'])) ?></dd>
                     <?php if (!empty($bill['description'])) : ?>
-                    <dt class="col-6 text-muted">Note</dt><dd class="col-6 text-end mb-2"><?= e($bill['description']) ?></dd>
+                    <dt class="col-6 text-muted"><?= e(t('col.note')) ?></dt><dd class="col-6 text-end mb-2"><?= e($bill['description']) ?></dd>
                     <?php endif; ?>
-                    <dt class="col-6 text-muted">Status</dt><dd class="col-6 text-end mb-0"><span class="badge bg-success">Available</span></dd>
+                    <dt class="col-6 text-muted"><?= e(t('common.status')) ?></dt><dd class="col-6 text-end mb-0"><span class="badge bg-success"><?= e(t('common.available')) ?></span></dd>
                     <?php if ($servedFromDb) : ?>
-                    <dt class="col-6 text-muted">Storage</dt><dd class="col-6 text-end mb-0"><span class="badge bg-warning text-dark">Recovered from database backup</span></dd>
+                    <dt class="col-6 text-muted"><?= e(t('col.storage')) ?></dt><dd class="col-6 text-end mb-0"><span class="badge bg-warning text-dark"><?= e(t('view.recovered_from_db')) ?></span></dd>
                     <?php endif; ?>
                 </dl>
             </div>
@@ -107,7 +107,7 @@ ob_start();
     <div class="col-12 col-lg-8">
         <div class="card border-0 shadow-sm">
             <div class="card-body p-0 pdf-viewer-frame">
-                <iframe src="<?= url('view_pdf.php') ?>?id=<?= $bill['id'] ?>" title="PDF Viewer" loading="lazy"></iframe>
+                <iframe src="<?= url('view_pdf.php') ?>?id=<?= $bill['id'] ?>" title="<?= e(t('view.pdf_viewer')) ?>" loading="lazy"></iframe>
             </div>
         </div>
     </div>

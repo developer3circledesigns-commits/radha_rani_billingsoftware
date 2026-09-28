@@ -14,24 +14,24 @@ if (method() === 'GET') {
 }
 
 if (method() === 'POST') {
-    if (!csrf_verify()) csrf_fail_api('Session token expired.');
+    if (!csrf_verify()) csrf_fail_api(t('api.csrf_expired_short'));
     $data = jsonBody() ?: $_POST;
     $branchId = (int) ($data['branch_id'] ?? 0);
-    if (!$branchId || !Branch::find($branchId)) api_error('Select a valid branch.', 422);
+    if (!$branchId || !Branch::find($branchId)) api_error(t('api.select_valid_branch'), 422);
 
     $name     = trim((string) ($data['name'] ?? ''));
     $email    = strtolower(trim((string) ($data['email'] ?? '')));
     $username = trim((string) ($data['username'] ?? ''));
     $password = (string) ($data['password'] ?? '');
 
-    if ($name === '') api_error('Full name is required.', 422);
-    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) api_error('Enter a valid email address.', 422);
-    if ($username === '') api_error('Username is required.', 422);
-    if (strlen($password) < 8) api_error('Password must be at least 8 characters.', 422);
+    if ($name === '') api_error(t('api.name_required'), 422);
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) api_error(t('api.valid_email'), 422);
+    if ($username === '') api_error(t('api.username_required'), 422);
+    if (strlen($password) < 8) api_error(t('api.password_min'), 422);
 
-    if (User::findByEmail($email)) api_error('Email already in use.', 422);
-    if (User::findByUsername($username)) api_error('Username already in use.', 422);
-    if (strlen($password) < 8) api_error('Password must be at least 8 characters.', 422);
+    if (User::findByEmail($email)) api_error(t('api.email_in_use'), 422);
+    if (User::findByUsername($username)) api_error(t('api.username_in_use'), 422);
+    if (strlen($password) < 8) api_error(t('api.password_min'), 422);
 
     $newId = User::create([
         'branch_id'     => $branchId,
@@ -47,7 +47,7 @@ if (method() === 'POST') {
         'username' => $username,
         'role'     => 'branch_admin',
     ]);
-    api_ok(['id' => $newId], 'Admin created.');
+    api_ok(['id' => $newId], t('api.admin_created'));
 }
 
-api_error('Method not allowed.', 405);
+api_error(t('api.method_not_allowed'), 405);

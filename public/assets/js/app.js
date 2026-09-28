@@ -6,6 +6,10 @@
 
     const APP = window.APP || {};
 
+    // Server-rendered catalogue subset (window.APP.i18n) with English fallbacks.
+    const S = APP.i18n || {};
+    const txt = (key, fallback) => S[key] || fallback;
+
     // ---------- Sidebar toggle (mobile) ----------
     const sidebar = document.getElementById('appSidebar');
     const overlay = document.getElementById('sidebarOverlay');
@@ -79,7 +83,7 @@
             if (!form || typeof form.matches !== 'function' || !form.matches('form[data-confirm]')) return;
             ev.preventDefault();
             pendingForm = form;
-            if (bodyEl) bodyEl.textContent = form.getAttribute('data-confirm') || 'Are you sure you want to continue?';
+            if (bodyEl) bodyEl.textContent = form.getAttribute('data-confirm') || txt('js.confirm_default', 'Are you sure you want to continue?');
             confirmModal.show();
         });
 
@@ -142,10 +146,10 @@
         return fetch(url, Object.assign({}, options, { headers: headers, credentials: 'same-origin' }))
             .then(function (res) {
                 return res.json().catch(function () {
-                    throw new Error('Server returned an invalid response.');
+                    throw new Error(txt('js.invalid_response', 'Server returned an invalid response.'));
                 }).then(function (data) {
                     if (!data.success) {
-                        const error = new Error(data.message || 'Request failed.');
+                        const error = new Error(data.message || txt('js.request_failed', 'Request failed.'));
                         error.status = res.status;
                         error.data = data;
                         throw error;
@@ -174,7 +178,9 @@
         if (!input || (input.type !== 'password' && input.type !== 'text')) return;
         const show = input.type === 'password';
         input.type = show ? 'text' : 'password';
-        btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+        btn.setAttribute('aria-label', show
+            ? txt('js.hide_password', 'Hide password')
+            : txt('js.show_password', 'Show password'));
         const icon = btn.querySelector('i');
         if (icon) icon.className = 'bi ' + (show ? 'bi-eye-slash' : 'bi-eye');
     });

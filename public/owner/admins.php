@@ -19,7 +19,7 @@ if ($action === 'delete' && isPost()) {
     if ($admin && $admin['role'] === 'branch_admin') {
         User::softDelete($adminId);
         log_activity((int) $user['id'], null, 'ADMIN_DELETED', 'user', $adminId, 'Deleted admin ' . $admin['name'], $admin);
-        flash_set('success', 'Admin account "' . $admin['name'] . '" deleted.');
+        flash_set('success', t('admins.deleted', ['name' => $admin['name']]));
     }
     redirect('owner/admins.php');
 }
@@ -44,7 +44,10 @@ if ($action === 'status' && isPost()) {
             'new_status'      => $status,
             'result'          => 'success',
         ]);
-        flash_set('success', 'Admin "' . $admin['name'] . '" is now ' . $status . '.');
+        flash_set('success', t('admins.status_now', [
+            'name'   => $admin['name'],
+            'status' => t($status === 'active' ? 'common.active' : 'common.inactive'),
+        ]));
     }
     redirect('owner/admins.php');
 }
@@ -59,7 +62,7 @@ if ($action === 'reset' && isPost()) {
     $admin = $adminId ? User::find($adminId) : null;
     if ($admin && $admin['role'] === 'branch_admin') {
         if (strlen($newPass) < 8) {
-            flash_set('danger', 'Password must be at least 8 characters.');
+            flash_set('danger', t('admins.password_min'));
             redirect('owner/admins.php?action=reset&id=' . $adminId);
         }
         User::updatePassword($adminId, password_hash($newPass, PASSWORD_DEFAULT));
@@ -74,7 +77,7 @@ if ($action === 'reset' && isPost()) {
             'target_role'     => $admin['role'],
             'result'          => 'success',
         ]);
-        flash_set('success', 'Password reset for "' . $admin['name'] . '".');
+        flash_set('success', t('admins.password_reset', ['name' => $admin['name']]));
     }
     redirect('owner/admins.php');
 }
@@ -93,27 +96,27 @@ if ($action === 'create' && isPost()) {
     ];
     $errors = [];
     validate_required($data, [
-        'name'     => 'Full name',
-        'email'    => 'Email',
-        'username' => 'Username',
-        'password' => 'Password',
+        'name'     => t('form.full_name'),
+        'email'    => t('common.email'),
+        'username' => t('form.username'),
+        'password' => t('form.password'),
     ], $errors);
-    validate_email($data, ['email' => 'Email'], $errors);
+    validate_email($data, ['email' => t('common.email')], $errors);
     if (strlen($data['password']) < 8) {
-        $errors['password'] = 'Password must be at least 8 characters.';
+        $errors['password'] = t('admins.password_min');
     }
     if ($data['branch_id'] <= 0 || !Branch::find($data['branch_id'])) {
-        $errors['branch_id'] = 'Select a valid branch.';
+        $errors['branch_id'] = t('admins.select_branch');
     }
     if (User::findByEmail($data['email'])) {
-        $errors['email'] = 'This email is already in use.';
+        $errors['email'] = t('admins.email_in_use');
     }
     if (User::findByUsername($data['username'])) {
-        $errors['username'] = 'This username is already in use.';
+        $errors['username'] = t('admins.username_in_use');
     }
 
     if ($errors) {
-        flash_set('danger', 'Please fix the highlighted fields.');
+        flash_set('danger', t('common.fix_fields'));
         $showCreate = true;
         $createData = $data;
         $createErrors = $errors;
@@ -132,7 +135,7 @@ if ($action === 'create' && isPost()) {
             'username' => $data['username'],
             'role'     => 'branch_admin',
         ]);
-        flash_set('success', 'Branch admin "' . $data['name'] . '" created successfully.');
+        flash_set('success', t('admins.created_ok', ['name' => $data['name']]));
         redirect('owner/admins.php');
     }
 }
@@ -154,21 +157,25 @@ if ($action === 'edit' && isPost()) {
         'status'    => post('status', '') === 'inactive' ? 'inactive' : 'active',
     ];
     $errors = [];
-    validate_required($data, ['name' => 'Full name', 'email' => 'Email', 'username' => 'Username'], $errors);
-    validate_email($data, ['email' => 'Email'], $errors);
+    validate_required($data, [
+        'name'     => t('form.full_name'),
+        'email'    => t('common.email'),
+        'username' => t('form.username'),
+    ], $errors);
+    validate_email($data, ['email' => t('common.email')], $errors);
     if ($data['branch_id'] <= 0 || !Branch::find($data['branch_id'])) {
-        $errors['branch_id'] = 'Select a valid branch.';
+        $errors['branch_id'] = t('admins.select_branch');
     }
     $dup = Database::fetch('SELECT id FROM users WHERE (email = ? OR username = ?) AND id != ? AND deleted_at IS NULL', [$data['email'], $data['username'], $adminId]);
     if ($dup) {
         $checkEmail = Database::fetch('SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND id != ? AND deleted_at IS NULL', [$data['email'], $adminId]);
         $checkUser = Database::fetch('SELECT id FROM users WHERE LOWER(username) = LOWER(?) AND id != ? AND deleted_at IS NULL', [$data['username'], $adminId]);
-        if ($checkEmail) $errors['email'] = 'This email is already in use.';
-        if ($checkUser) $errors['username'] = 'This username is already in use.';
+        if ($checkEmail) $errors['email'] = t('admins.email_in_use');
+        if ($checkUser) $errors['username'] = t('admins.username_in_use');
     }
 
     if ($errors) {
-        flash_set('danger', 'Please fix the highlighted fields.');
+        flash_set('danger', t('common.fix_fields'));
         $showEdit = $existing;
         $editData = $data;
         $editErrors = $errors;
@@ -195,7 +202,7 @@ if ($action === 'edit' && isPost()) {
                 'result'            => 'success',
             ]);
         }
-        flash_set('success', 'Admin updated successfully.');
+        flash_set('success', t('admins.updated_ok'));
         redirect('owner/admins.php');
     }
 }
@@ -207,7 +214,7 @@ if ($action === 'edit' && isGet()) {
     $adminId = (int) get('id', 0);
     $showEdit = $adminId ? User::find($adminId) : null;
     if (!$showEdit) {
-        flash_set('danger', 'Admin account not found.');
+        flash_set('danger', t('admins.not_found'));
         redirect('owner/admins.php');
     }
 }
@@ -217,8 +224,8 @@ if ($action === 'edit' && isGet()) {
 // ------------------------------------------------------------------
 $admins = User::admins();
 $branches = Branch::all(true);
-$pageTitle = 'Branch Admins';
-$pageSubtitle = 'Manage branch administrator accounts';
+$pageTitle = t('admins.title');
+$pageSubtitle = t('admins.subtitle');
 $activeMenu = 'admins';
 
 ob_start();
@@ -229,7 +236,7 @@ ob_start();
     <div class="col-lg-8">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-person-plus me-2"></i>Create Branch Admin</h5>
+                <h5 class="mb-0"><i class="bi bi-person-plus me-2"></i><?= e(t('admins.create_title')) ?></h5>
                 <a href="<?= url('owner/admins.php') ?>" class="btn btn-sm btn-light"><i class="bi bi-x-lg"></i></a>
             </div>
             <div class="card-body">
@@ -238,7 +245,7 @@ ob_start();
                     'data' => $createData ?? ['branch_id' => (int) get('branch_id', 0)],
                     'errors' => $createErrors ?? [],
                     'branches' => $branches,
-                    'submitLabel' => 'Create Admin',
+                    'submitLabel' => t('admins.create'),
                     'showPassword' => true,
                 ]); ?>
             </div>
@@ -252,7 +259,7 @@ ob_start();
     <div class="col-lg-8">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Edit Admin — <?= e($showEdit['name']) ?></h5>
+                <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i><?= e(t('admins.edit_title', ['name' => $showEdit['name']])) ?></h5>
                 <a href="<?= url('owner/admins.php') ?>" class="btn btn-sm btn-light"><i class="bi bi-x-lg"></i></a>
             </div>
             <div class="card-body">
@@ -261,7 +268,7 @@ ob_start();
                     'data' => array_merge($showEdit, $editData ?? []),
                     'errors' => $editErrors ?? [],
                     'branches' => $branches,
-                    'submitLabel' => 'Save Changes',
+                    'submitLabel' => t('common.save_changes'),
                     'idField' => $showEdit['id'],
                     'showPassword' => false,
                 ]); ?>
@@ -273,34 +280,34 @@ ob_start();
 
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i><?= count($admins) ?> Branch Admin<?= count($admins) === 1 ? '' : 's' ?></h5>
-        <a href="<?= url('owner/admins.php?action=create') ?>" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg me-1"></i>Add Admin</a>
+        <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i><?= e(tn('admins.count', count($admins))) ?></h5>
+        <a href="<?= url('owner/admins.php?action=create') ?>" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg me-1"></i><?= e(t('admins.add')) ?></a>
     </div>
     <div class="card-body p-0">
         <?php if (!$admins) : ?>
             <div class="empty-state">
                 <i class="bi bi-person-badge"></i>
-                <p class="mb-0">No branch admins created yet. Add one to get started.</p>
+                <p class="mb-0"><?= e(t('admins.empty')) ?></p>
             </div>
         <?php else : ?>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th class="ps-3">Admin</th>
-                        <th>Login ID</th>
-                        <th>Branch</th>
-                        <th>Last Login</th>
-                        <th>Created</th>
-                        <th>Status</th>
-                        <th class="pe-3 text-end">Actions</th>
+                        <th class="ps-3"><?= e(t('col.admin')) ?></th>
+                        <th><?= e(t('col.login_id')) ?></th>
+                        <th><?= e(t('common.branch')) ?></th>
+                        <th><?= e(t('col.last_login')) ?></th>
+                        <th><?= e(t('col.created')) ?></th>
+                        <th><?= e(t('common.status')) ?></th>
+                        <th class="pe-3 text-end"><?= e(t('common.actions')) ?></th>
                     </tr>
                 </thead>
                 <tbody>
                 <?php foreach ($admins as $a) : ?>
                     <tr>
                         <td class="ps-3">
-                            <span class="avatar avatar-sm me-2"><?= e(strtoupper(substr($a['name'], 0, 1))) ?></span>
+                            <span class="avatar avatar-sm me-2"><?= e(mb_strtoupper(mb_substr($a['name'], 0, 1))) ?></span>
                             <span class="fw-semibold"><?= e($a['name']) ?></span>
                         </td>
                         <td class="small">
@@ -312,30 +319,30 @@ ob_start();
                         <td class="small text-muted"><?= e(format_date($a['created_at'])) ?></td>
                         <td>
                             <?php if ($a['status'] === 'active') : ?>
-                                <span class="badge bg-success-subtle text-success">Active</span>
+                                <span class="badge bg-success-subtle text-success"><?= e(t('common.active')) ?></span>
                             <?php else : ?>
-                                <span class="badge bg-secondary-subtle text-secondary">Inactive</span>
+                                <span class="badge bg-secondary-subtle text-secondary"><?= e(t('common.inactive')) ?></span>
                             <?php endif; ?>
                         </td>
                         <td class="pe-3 text-end">
-                            <button type="button" class="btn btn-xs btn-light" title="Reset Password"
+                            <button type="button" class="btn btn-xs btn-light" title="<?= e(t('admins.reset_password')) ?>"
                                     data-bs-toggle="modal" data-bs-target="#resetPwModal" data-id="<?= $a['id'] ?>" data-name="<?= e($a['name']) ?>">
                                 <i class="bi bi-key"></i>
                             </button>
-                            <a href="<?= url('owner/admins.php?action=edit&id=' . $a['id']) ?>" class="btn btn-xs btn-light" title="Edit"><i class="bi bi-pencil"></i></a>
+                            <a href="<?= url('owner/admins.php?action=edit&id=' . $a['id']) ?>" class="btn btn-xs btn-light" title="<?= e(t('common.edit')) ?>"><i class="bi bi-pencil"></i></a>
                             <form method="post" action="<?= url('owner/admins.php?action=status') ?>" class="d-inline">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="id" value="<?= $a['id'] ?>">
                                 <input type="hidden" name="status" value="<?= $a['status'] === 'active' ? 'inactive' : 'active' ?>">
-                                <button type="submit" class="btn btn-xs btn-light" title="<?= $a['status'] === 'active' ? 'Disable' : 'Enable' ?>">
+                                <button type="submit" class="btn btn-xs btn-light" title="<?= e($a['status'] === 'active' ? t('admins.disable') : t('admins.enable')) ?>">
                                     <i class="bi <?= $a['status'] === 'active' ? 'bi-pause-circle' : 'bi-play-circle' ?>"></i>
                                 </button>
                             </form>
                             <form method="post" action="<?= url('owner/admins.php?action=delete') ?>" class="d-inline"
-                                      data-confirm="Delete this admin account? This cannot be undone.">
+                                      data-confirm="<?= e(t('admins.delete_confirm')) ?>">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="id" value="<?= $a['id'] ?>">
-                                <button type="submit" class="btn btn-xs btn-light text-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                                <button type="submit" class="btn btn-xs btn-light text-danger" title="<?= e(t('common.delete')) ?>"><i class="bi bi-trash"></i></button>
                             </form>
                         </td>
                     </tr>
@@ -355,20 +362,20 @@ ob_start();
                 <?= csrf_field() ?>
                 <input type="hidden" name="id" id="resetPwId">
                 <div class="modal-header">
-                    <h5 class="modal-title">Reset Password</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title"><?= e(t('admins.reset_password')) ?></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= e(t('common.close')) ?>"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="small text-muted">Set a new password for <strong id="resetPwName"></strong>.</p>
-                    <label class="form-label" for="reset_pw">New password</label>
+                    <p class="small text-muted"><?= e(t('admins.new_password_for')) ?> <strong id="resetPwName"></strong>.</p>
+                    <label class="form-label" for="reset_pw"><?= e(t('admins.new_password')) ?></label>
                     <div class="input-group">
-                        <input type="password" class="form-control" id="reset_pw" name="password" minlength="8" placeholder="At least 8 characters" required>
-                        <button class="btn btn-outline-secondary" type="button" data-pw-toggle="reset_pw" aria-label="Show password"><i class="bi bi-eye"></i></button>
+                        <input type="password" class="form-control" id="reset_pw" name="password" minlength="8" placeholder="<?= e(t('form.password_placeholder')) ?>" required>
+                        <button class="btn btn-outline-secondary" type="button" data-pw-toggle="reset_pw" aria-label="<?= e(t('form.show_password')) ?>"><i class="bi bi-eye"></i></button>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-key me-1"></i>Reset Password</button>
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal"><?= e(t('common.cancel')) ?></button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-key me-1"></i><?= e(t('admins.reset_password')) ?></button>
                 </div>
             </form>
         </div>

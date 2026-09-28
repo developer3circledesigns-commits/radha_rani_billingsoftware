@@ -19,7 +19,7 @@ final class PdfValidator
         $errors = [];
 
         if (!isset($file['error'])) {
-            return ['ok' => false, 'errors' => ['Upload error: no file received.']];
+            return ['ok' => false, 'errors' => [t('api.no_file_received')]];
         }
 
         switch ($file['error']) {
@@ -27,34 +27,34 @@ final class PdfValidator
                 break;
             case UPLOAD_ERR_INI_SIZE:
             case UPLOAD_ERR_FORM_SIZE:
-                return ['ok' => false, 'errors' => ['PDF file is larger than the allowed limit (' . format_bytes(self::MAX_SIZE) . ').']];
+                return ['ok' => false, 'errors' => [t('api.file_too_large', ['size' => format_bytes(self::MAX_SIZE)])]];
             case UPLOAD_ERR_PARTIAL:
-                return ['ok' => false, 'errors' => ['The file was only partially uploaded. Please retry.']];
+                return ['ok' => false, 'errors' => [t('api.partial_upload')]];
             case UPLOAD_ERR_NO_FILE:
-                return ['ok' => false, 'errors' => ['No file was selected. Please choose a PDF.']];
+                return ['ok' => false, 'errors' => [t('api.no_file_selected')]];
             default:
-                return ['ok' => false, 'errors' => ['Upload failed. Please retry.']];
+                return ['ok' => false, 'errors' => [t('api.upload_failed_retry')]];
         }
 
         if ((int) $file['size'] === 0) {
-            $errors[] = 'Empty files are not allowed.';
+            $errors[] = t('api.empty_file');
         }
 
         if ((int) $file['size'] > self::MAX_SIZE) {
-            $errors[] = 'PDF file is larger than the allowed limit (' . format_bytes(self::MAX_SIZE) . ').';
+            $errors[] = t('api.file_too_large', ['size' => format_bytes(self::MAX_SIZE)]);
         }
 
         // MIME validation
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mime = $finfo->file($file['tmp_name']);
         if ($mime !== 'application/pdf') {
-            $errors[] = 'Only PDF files are allowed.';
+            $errors[] = t('api.only_pdf_allowed');
         }
 
         // Extension validation
         $ext = strtolower(pathinfo($originalName ?? $file['name'], PATHINFO_EXTENSION));
         if ($ext !== self::ALLOWED_EXT) {
-            $errors[] = 'Only PDF files are allowed.';
+            $errors[] = t('api.only_pdf_allowed');
         }
 
         // Signature check (first 5 bytes of a PDF: %PDF-)
@@ -62,7 +62,7 @@ final class PdfValidator
         $sig = fread($handle, 5);
         fclose($handle);
         if ($sig !== '%PDF-') {
-            $errors[] = 'The file does not appear to be a valid PDF document.';
+            $errors[] = t('api.invalid_pdf_document');
         }
 
         return ['ok' => empty($errors), 'errors' => $errors];

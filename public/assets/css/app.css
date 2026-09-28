@@ -201,6 +201,58 @@ body.app-body {
 }
 .sidebar-footer .text-danger { color: #b4233a !important; }
 
+/* ============================================================
+   Language switcher
+   ============================================================ */
+.lang-switch {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--rr-border);
+}
+.lang-switch-label {
+    display: block;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--rr-muted);
+    margin-bottom: 6px;
+}
+.lang-switch-form { display: inline-block; margin: 0 4px 4px 0; }
+.lang-switch-btn {
+    font: inherit;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--rr-muted);
+    background: transparent;
+    border: 1px solid var(--rr-border);
+    border-radius: 999px;
+    padding: 3px 10px;
+    cursor: pointer;
+    line-height: 1.5;
+}
+.lang-switch-btn:hover { color: var(--rr-burgundy); border-color: var(--rr-burgundy); }
+.lang-switch-btn.active {
+    color: #fff;
+    background: var(--rr-burgundy);
+    border-color: var(--rr-burgundy);
+}
+.lang-switch-btn:focus-visible { outline: 2px solid var(--rr-burgundy); outline-offset: 2px; }
+
+/* Standalone variant for the login page, which has no sidebar. */
+.l1-lang {
+    margin-top: 18px;
+    display: flex;
+    justify-content: center;
+}
+.l1-lang .lang-switch {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+    text-align: center;
+}
+.l1-lang .lang-switch-label { color: var(--l1-muted); }
+
 .sidebar-overlay {
     display: none;
     position: fixed;

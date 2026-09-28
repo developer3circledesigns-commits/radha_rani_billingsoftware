@@ -34,6 +34,14 @@
 
     if (!form) return;
 
+    // Server-rendered catalogue subset (window.APP.i18n). English values are
+    // used as the fallback so a missing key degrades to readable text rather
+    // than an empty element.
+    const S = (window.APP || {}).i18n || {};
+    const txt = (key, fallback) => S[key] || fallback;
+    const cashLabel = txt('common.cash', 'Cash');
+    const cardLabel = txt('common.card', 'Card');
+
     let selectedFile = null;
     let busy = false;
 
@@ -79,17 +87,17 @@
         const ext = (file.name.split('.').pop() || '').toLowerCase();
 
         if (ext !== 'pdf' || file.type !== 'application/pdf') {
-            setFileError('Only PDF files are allowed.');
+            setFileError(txt('js.only_pdf', 'Only PDF files are allowed.'));
             clearFileSelection();
             return;
         }
         if (file.size === 0) {
-            setFileError('Empty files are not allowed.');
+            setFileError(txt('js.empty_file', 'Empty files are not allowed.'));
             clearFileSelection();
             return;
         }
         if (file.size > MAX_BYTES) {
-            setFileError('PDF file is larger than the allowed limit.');
+            setFileError(txt('js.too_large', 'PDF file is larger than the allowed limit.'));
             clearFileSelection();
             return;
         }
@@ -129,24 +137,24 @@
 
         const paymentType = form.querySelector('input[name="payment_type"]:checked');
         if (!paymentType || !paymentType.value) {
-            setFieldError(ptErr, 'Please select Cash or Card.');
+            setFieldError(ptErr, txt('js.select_cash_card', 'Please select Cash or Card.'));
             valid = false;
         }
 
         const dateVal = form.querySelector('input[name="business_date"]').value;
         if (!dateVal) {
-            setFieldError(dateErr, 'Please select the business date.');
+            setFieldError(dateErr, txt('js.select_date', 'Please select the business date.'));
             valid = false;
         } else if (dateVal > todayISO()) {
-            setFieldError(dateErr, 'Business date cannot be in the future.');
+            setFieldError(dateErr, txt('js.future_date', 'Business date cannot be in the future.'));
             valid = false;
         }
 
         if (!selectedFile) {
-            setFieldError(fileErr, 'Please choose a PDF file.');
+            setFieldError(fileErr, txt('js.choose_pdf', 'Please choose a PDF file.'));
             valid = false;
         } else if (selectedFile.type !== 'application/pdf' || (selectedFile.name.split('.').pop() || '').toLowerCase() !== 'pdf') {
-            setFieldError(fileErr, 'Only PDF files are allowed.');
+            setFieldError(fileErr, txt('js.only_pdf', 'Only PDF files are allowed.'));
             valid = false;
         }
 
@@ -156,7 +164,7 @@
         uploadBtn.disabled = true;
         formWrap.classList.add('d-none');
         progressWrap.classList.remove('d-none');
-        progressLabel.textContent = 'Uploading…';
+        progressLabel.textContent = txt('js.uploading', 'Uploading…');
         progressBar.style.width = '0%';
         progressPct.textContent = '0%';
 
@@ -173,7 +181,7 @@
                 progressBar.style.width = pct + '%';
                 progressPct.textContent = pct + '%';
                 if (pct === 100) {
-                    progressLabel.textContent = 'Processing…';
+                    progressLabel.textContent = txt('js.processing', 'Processing…');
                 }
             }
         });
@@ -192,20 +200,39 @@
             if (xhr.status >= 200 && xhr.status < 300 && data && data.success) {
                 progressWrap.classList.add('d-none');
                 resultWrap.classList.remove('d-none');
-                resultTitle.textContent = 'Bill uploaded successfully.';
-                resultMessage.textContent = (data.data.filename || '') + ' · ' + (data.data.payment === 'cash' ? 'Cash' : 'Card') + ' · ' + data.data.biz_date;
-                resultActions.innerHTML = '' +
-                    '<a href="' + data.data.view_url + '" class="btn btn-outline-primary btn-sm"><i class="bi bi-eye me-1"></i>View Document</a>' +
-                    '<button type="button" class="btn btn-light btn-sm" onclick="window.location.reload()"><i class="bi bi-plus-lg me-1"></i>Upload Another</button>';
+                resultTitle.textContent = txt('js.upload_ok', 'Bill uploaded successfully.');
+                resultMessage.textContent = (data.data.filename || '') + ' · ' + (data.data.payment === 'cash' ? cashLabel : cardLabel) + ' · ' + data.data.biz_date;
+                // Labels are inserted with textContent-built strings from the
+                // catalogue only; no user data is concatenated into markup.
+                resultActions.textContent = '';
+                const viewLink = document.createElement('a');
+                viewLink.href = data.data.view_url;
+                viewLink.className = 'btn btn-outline-primary btn-sm';
+                viewLink.appendChild(icon('bi-eye'));
+                viewLink.appendChild(document.createTextNode(
+                    ' ' + txt('js.view_document', 'View Document')
+                ));
+
+                const againBtn = document.createElement('button');
+                againBtn.type = 'button';
+                againBtn.className = 'btn btn-light btn-sm';
+                againBtn.appendChild(icon('bi-plus-lg'));
+                againBtn.appendChild(document.createTextNode(
+                    ' ' + txt('js.upload_another', 'Upload Another')
+                ));
+                againBtn.addEventListener('click', function () { window.location.reload(); });
+
+                resultActions.appendChild(viewLink);
+                resultActions.appendChild(againBtn);
             } else {
-                showError(data && data.message ? data.message : 'Upload failed — please retry.');
+                showError(data && data.message ? data.message : txt('js.failed_retry', 'Upload failed — please retry.'));
             }
         });
 
         xhr.addEventListener('error', function () {
             busy = false;
             uploadBtn.disabled = false;
-            showError('Network error — upload failed. Please retry.');
+            showError(txt('js.network_error', 'Network error — upload failed. Please retry.'));
         });
 
         xhr.send(fd);
@@ -227,6 +254,12 @@
     }
 
     // ---------- helpers ----------
+    function icon(cls) {
+        const el = document.createElement('i');
+        el.className = 'bi ' + cls + ' me-1';
+        return el;
+    }
+
     function formatSize(bytes) {
         if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' MB';
         if (bytes >= 1024) return Math.round(bytes / 1024) + ' KB';

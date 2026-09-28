@@ -7,11 +7,11 @@ require_once dirname(__DIR__, 3) . '/app/bootstrap.php';
 header('Content-Type: application/json; charset=utf-8');
 
 if (!isPost()) {
-    api_error('Method not allowed.', 405);
+    api_error(t('api.method_not_allowed'), 405);
 }
 
 if (!csrf_verify()) {
-    csrf_fail_api('Session token expired. Please refresh the page and try again.');
+    csrf_fail_api(t('api.csrf_expired'));
 }
 
 $login = trim((string) ($_POST['login'] ?? jsonBody()['login'] ?? ''));
@@ -26,12 +26,12 @@ if ($login === '' || $password === '') {
         'field'  => $login === '' ? 'login' : 'password',
         'result' => 'rejected',
     ]);
-    api_error('Login ID and password are required.', 422);
+    api_error(t('api.credentials_required'), 422);
 }
 
 // Throttling
 if (!throttle_allow_login($login)) {
-    api_error('Too many failed attempts. Please try again later.', 429);
+    api_error(t('api.too_many_attempts'), 429);
 }
 
 $userRow = User::findByLogin($login);
@@ -51,7 +51,7 @@ if (!$userRow || !password_verify($password, $userRow['password_hash'])) {
         );
     }
     throttle_register_failure($login);
-    api_error('Invalid login ID or password.', 401);
+    api_error(t('api.invalid_credentials'), 401);
 }
 
 if ($userRow['status'] !== 'active') {
@@ -62,7 +62,7 @@ if ($userRow['status'] !== 'active') {
         (int) $userRow['id'],
         $userRow
     );
-    api_error('This account is inactive. Contact the administrator.', 403);
+    api_error(t('api.account_inactive'), 403);
 }
 if ($userRow['role'] === 'branch_admin' && $userRow['branch_status'] !== 'active') {
     SecurityLogger::authFailed(
@@ -72,7 +72,7 @@ if ($userRow['role'] === 'branch_admin' && $userRow['branch_status'] !== 'active
         (int) $userRow['id'],
         $userRow
     );
-    api_error('The branch associated with this account is inactive.', 403);
+    api_error(t('api.api_branch_inactive'), 403);
 }
 
 session_regenerate_id(true);
@@ -93,4 +93,4 @@ api_ok([
     'name'    => $userRow['name'],
     'role'    => $userRow['role'],
     'redirect'=> $userRow['role'] === 'owner' ? url('owner/dashboard.php') : url('branch/dashboard.php'),
-], 'Login successful.');
+], t('api.login_ok'));

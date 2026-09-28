@@ -13,6 +13,7 @@ if (file_exists($composerAutoload)) {
 }
 
 require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/helpers/Lang.php';
 
 // Session (secure bootstrap).
 // CLI tools load this file too, but must not start a session: it emits
@@ -30,6 +31,11 @@ if (PHP_SAPI !== 'cli' && session_status() === PHP_SESSION_NONE) {
     ]);
     session_start();
 }
+
+// Resolve the active language. Must run after the session is up (it reads the
+// session mirror) and before anything can emit output, so Vary: Cookie still
+// reaches the client on every entry point, error pages included.
+Lang::init();
 
 require_once __DIR__ . '/helpers/Database.php';
 require_once __DIR__ . '/helpers/functions.php';

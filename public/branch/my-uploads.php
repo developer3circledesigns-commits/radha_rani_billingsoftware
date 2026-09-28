@@ -24,8 +24,8 @@ foreach ($filters as $k => $v) {
 }
 $baseUrl = url('branch/my-uploads.php') . (count($qs) ? '?' . http_build_query($qs) : '');
 
-$pageTitle = 'My Uploads';
-$pageSubtitle = 'Documents uploaded by your branch';
+$pageTitle = t('myuploads.title');
+$pageSubtitle = t('myuploads.subtitle');
 $activeMenu = 'my-uploads';
 
 ob_start();
@@ -36,24 +36,24 @@ ob_start();
     <div class="card-body py-3">
         <form method="get" action="<?= url('branch/my-uploads.php') ?>" class="row g-2 align-items-end">
             <div class="col-md-3">
-                <label class="form-label small text-muted mb-1" for="m_type">Payment Type</label>
+                <label class="form-label small text-muted mb-1" for="m_type"><?= e(t('myuploads.payment_type')) ?></label>
                 <select class="form-select form-select-sm" id="m_type" name="payment_type">
-                    <option value="">All Types</option>
-                    <option value="cash" <?= $filters['payment_type'] === 'cash' ? 'selected' : '' ?>>Cash</option>
-                    <option value="card" <?= $filters['payment_type'] === 'card' ? 'selected' : '' ?>>Card</option>
+                    <option value=""><?= e(t('common.all_types')) ?></option>
+                    <option value="cash" <?= $filters['payment_type'] === 'cash' ? 'selected' : '' ?>><?= e(t('common.cash')) ?></option>
+                    <option value="card" <?= $filters['payment_type'] === 'card' ? 'selected' : '' ?>><?= e(t('common.card')) ?></option>
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label small text-muted mb-1" for="m_date">Business Date</label>
+                <label class="form-label small text-muted mb-1" for="m_date"><?= e(t('upload.business_date')) ?></label>
                 <input type="date" class="form-control form-control-sm" id="m_date" name="business_date" value="<?= e($filters['business_date'] ?? '') ?>">
             </div>
             <div class="col-md-3">
-                <label class="form-label small text-muted mb-1" for="m_q">Filename</label>
-                <input type="text" class="form-control form-control-sm" id="m_q" name="q" value="<?= e($filters['q'] ?? '') ?>" placeholder="Search…">
+                <label class="form-label small text-muted mb-1" for="m_q"><?= e(t('common.filename')) ?></label>
+                <input type="text" class="form-control form-control-sm" id="m_q" name="q" value="<?= e($filters['q'] ?? '') ?>" placeholder="<?= e(t('common.search')) ?>…">
             </div>
             <div class="col-md-3 d-flex gap-2">
-                <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i>Filter</button>
-                <a href="<?= url('branch/my-uploads.php') ?>" class="btn btn-sm btn-light">Reset</a>
+                <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i><?= e(t('common.filter')) ?></button>
+                <a href="<?= url('branch/my-uploads.php') ?>" class="btn btn-sm btn-light"><?= e(t('common.reset')) ?></a>
             </div>
         </form>
     </div>
@@ -61,29 +61,29 @@ ob_start();
 
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h5 class="mb-0"><i class="bi bi-folder2-open me-2"></i><?= $result['count'] ?> Uploaded Document<?= $result['count'] === 1 ? '' : 's' ?></h5>
-        <a href="<?= url('branch/upload.php') ?>" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg me-1"></i>Upload New</a>
+        <h5 class="mb-0"><i class="bi bi-folder2-open me-2"></i><?= e(t('myuploads.count', ['n' => $result['count']])) ?></h5>
+        <a href="<?= url('branch/upload.php') ?>" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg me-1"></i><?= e(t('myuploads.upload_new')) ?></a>
     </div>
     <div class="card-body p-0">
         <?php if (!$result['rows']) : ?>
             <div class="empty-state">
                 <i class="bi bi-file-earmark-pdf"></i>
-                <p class="mb-1">No bills uploaded yet.</p>
-                <p class="mb-3 text-muted">Upload today's cash or card bill PDF.</p>
-                <a href="<?= url('branch/upload.php') ?>" class="btn btn-sm btn-primary"><i class="bi bi-upload me-1"></i>Upload Bill</a>
+                <p class="mb-1"><?= e(t('bdash.empty_title')) ?></p>
+                <p class="mb-3 text-muted"><?= e(t('bdash.empty_hint')) ?></p>
+                <a href="<?= url('branch/upload.php') ?>" class="btn btn-sm btn-primary"><i class="bi bi-upload me-1"></i><?= e(t('bdash.upload_bill')) ?></a>
             </div>
         <?php else : ?>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th class="ps-3">Document</th>
-                        <th>Type</th>
-                        <th>Business Date</th>
-                        <th>File Size</th>
-                        <th>Uploaded At</th>
-                        <th>Status</th>
-                        <th class="pe-3 text-end">Actions</th>
+                        <th class="ps-3"><?= e(t('col.document')) ?></th>
+                        <th><?= e(t('col.type')) ?></th>
+                        <th><?= e(t('col.business_date')) ?></th>
+                        <th><?= e(t('col.file_size')) ?></th>
+                        <th><?= e(t('col.uploaded_at')) ?></th>
+                        <th><?= e(t('common.status')) ?></th>
+                        <th class="pe-3 text-end"><?= e(t('common.actions')) ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -104,9 +104,9 @@ ob_start();
                         <td class="small"><?= e(format_date($bill['business_date'])) ?></td>
                         <td class="small text-muted"><?= e(format_bytes((int) $bill['file_size'])) ?></td>
                         <td class="small text-muted"><?= e(format_datetime($bill['uploaded_at'])) ?></td>
-                        <td><span class="badge bg-success-subtle text-success">Available</span></td>
+                        <td><span class="badge bg-success-subtle text-success"><?= e(t('common.available')) ?></span></td>
                         <td class="pe-3 text-end">
-                            <a href="<?= url('view.php') ?>?id=<?= $bill['id'] ?>" class="btn btn-xs btn-light" title="View"><i class="bi bi-eye"></i></a>
+                            <a href="<?= url('view.php') ?>?id=<?= $bill['id'] ?>" class="btn btn-xs btn-light" title="<?= e(t('common.view')) ?>"><i class="bi bi-eye"></i></a>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -114,7 +114,7 @@ ob_start();
             </table>
         </div>
         <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <span class="small text-muted"><?= $result['count'] ?> document(s) · Page <?= $result['page'] ?> of <?= $result['pages'] ?></span>
+            <span class="small text-muted"><?= e(t('myuploads.docs', ['n' => $result['count']])) ?> · <?= e(t('common.page_of', ['page' => $result['page'], 'pages' => $result['pages']])) ?></span>
             <?= pagination($result, $baseUrl) ?>
         </div>
         <?php endif; ?>

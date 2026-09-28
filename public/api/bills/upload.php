@@ -7,7 +7,7 @@ require_once dirname(__DIR__, 3) . '/app/bootstrap.php';
 header('Content-Type: application/json; charset=utf-8');
 
 if (!isPost()) {
-    api_error('Method not allowed.', 405);
+    api_error(t('api.method_not_allowed'), 405);
 }
 
 if (!check_authentication()) {
@@ -17,11 +17,11 @@ if (!check_authentication()) {
         null,
         ['required_auth' => 'branch_admin', 'endpoint' => 'bills_upload']
     );
-    api_error('Authentication required. Please sign in.', 401);
+    api_error(t('api.auth_required'), 401);
 }
 
 if (!csrf_verify()) {
-    csrf_fail_api('Session token expired. Please refresh the page and try again.');
+    csrf_fail_api(t('api.csrf_expired'));
 }
 
 $user = current_user();
@@ -32,7 +32,7 @@ if (($user['role'] ?? '') !== 'branch_admin') {
         $user,
         ['required_role' => 'branch_admin', 'endpoint' => 'bills_upload']
     );
-    api_error('You are not authorized to upload bills.', 403);
+    api_error(t('api.not_authorized_upload'), 403);
 }
 
 // Fail loudly and clearly if storage is not writable, instead of accepting
@@ -40,15 +40,15 @@ if (($user['role'] ?? '') !== 'branch_admin') {
 $storageProblems = BillStorage::ensureStorageTree();
 if ($storageProblems !== []) {
     error_log('[bill-upload] storage not writable: ' . implode(', ', $storageProblems));
-    api_error('Bill storage is temporarily unavailable. Please contact the administrator.', 503);
+    api_error(t('api.storage_unavailable'), 503);
 }
 
 $branch = Branch::find((int) $user['branch_id']);
 if (!$branch) {
-    api_error('Your account is not assigned to a valid branch.', 403);
+    api_error(t('api.invalid_branch'), 403);
 }
 if ($branch['status'] !== 'active') {
-    api_error('Your branch is currently inactive. Uploads are disabled.', 403);
+    api_error(t('api.branch_inactive'), 403);
 }
 
 // Read settings-based size limit
@@ -73,20 +73,20 @@ $businessDate = $_POST['business_date'] ?? '';
 $description = trim((string) ($_POST['description'] ?? ''));
 
 if (!in_array($paymentType, ['cash', 'card'], true)) {
-    api_error('Please select a valid payment type (Cash or Card).', 422, ['payment_type' => 'Select Cash or Card.']);
+    api_error(t('api.select_payment_type'), 422, ['payment_type' => t('api.select_cash_or_card')]);
 }
 
 $d = DateTime::createFromFormat('Y-m-d', $businessDate);
 if (!$d || $d->format('Y-m-d') !== $businessDate) {
-    api_error('Please select a valid business date.', 422, ['business_date' => 'Select a valid date.']);
+    api_error(t('api.select_business_date'), 422, ['business_date' => t('api.select_valid_date')]);
 }
 $today = (new DateTime())->format('Y-m-d');
 if ($businessDate > $today) {
-    api_error('Business date cannot be in the future.', 422, ['business_date' => 'Business date cannot be in the future.']);
+    api_error(t('api.future_date'), 422, ['business_date' => t('api.future_date')]);
 }
 
 if (empty($_FILES['pdf_file']) || ($_FILES['pdf_file']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-    api_error('Please choose a PDF file to upload.', 422, ['pdf_file' => 'No PDF file selected.']);
+    api_error(t('api.choose_pdf'), 422, ['pdf_file' => t('api.no_pdf_selected')]);
 }
 
 $origName = sanitize_filename($_FILES['pdf_file']['name']);
@@ -112,7 +112,7 @@ if (!$validation['ok']) {
 
 // Extra size check vs configured limit
 if ((int) $file['size'] > $maxSize) {
-    api_error('PDF file is larger than the allowed limit (' . format_bytes($maxSize) . ').', 422, ['pdf_file' => 'PDF file exceeds the configured limit.']);
+    api_error(t('api.file_too_large', ['size' => format_bytes($maxSize)]), 422, ['pdf_file' => t('api.file_exceeds_limit')]);
 }
 
 // ---- Move & store ----
@@ -125,13 +125,13 @@ $storedName = $branchCode . '_' . date('Ymd_His') . '_' . strtoupper($paymentTyp
 $paths = BillStorage::buildUploadPath($branchCode, $paymentType, $storedName);
 
 if (!is_uploaded_file($file['tmp_name'])) {
-    api_error('Upload failed.', 500);
+    api_error(t('api.upload_failed'), 500);
 }
 
 // Read the uploaded bytes once; they are used for BOTH copies and the hash.
 $bytes = @file_get_contents($file['tmp_name']);
 if ($bytes === false || $bytes === '') {
-    api_error('Could not read the uploaded file. Please retry.', 500);
+    api_error(t('api.unreadable_file'), 500);
 }
 $hash = hash('sha256', $bytes);
 $size = strlen($bytes);
@@ -172,7 +172,7 @@ try {
         @unlink($paths['abs']);
     }
     error_log('[bill-upload] database insert failed: ' . $e->getMessage());
-    api_error('Could not save the uploaded PDF. Please retry.', 500);
+    api_error(t('api.save_failed'), 500);
 }
 
 // Folder write failed but the bill is safely stored in the database.
@@ -198,6 +198,8 @@ SecurityLogger::fileUploaded(
     ]
 );
 
+// Audit detail stays English on purpose: the activity log is evidence, and
+// translating its free text would make cross-locale searching unreliable.
 log_activity((int) $user['id'], (int) $branch['id'], 'BILL_UPLOADED', 'bill', $billId,
     'Uploaded ' . ($paymentType === 'cash' ? 'Cash' : 'Card') . ' bill for ' . $businessDate . ': ' . $origName);
 
@@ -209,4 +211,4 @@ api_ok([
     'size'        => format_bytes($size),
     'view_url'    => url('view.php') . '?id=' . $billId,
     'download_url'=> url('download.php') . '?id=' . $billId,
-], 'Bill uploaded successfully.');
+], t('api.ok_bill_uploaded'));

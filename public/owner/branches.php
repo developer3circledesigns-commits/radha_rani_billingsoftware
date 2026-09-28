@@ -21,7 +21,7 @@ if ($action === 'delete' && isPost()) {
     if ($branch) {
         Branch::softDelete($branchId);
         log_activity((int) $user['id'], null, 'BRANCH_DELETED', 'branch', $branchId, 'Deleted branch ' . $branch['branch_name']);
-        flash_set('success', 'Branch "' . $branch['branch_name'] . '" deleted.');
+        flash_set('success', t('branches.deleted', ['name' => $branch['branch_name']]));
     }
     redirect('owner/branches.php');
 }
@@ -39,7 +39,12 @@ if ($action === 'status' && isPost()) {
     if ($branch) {
         Branch::setStatus($branchId, $status);
         log_activity((int) $user['id'], null, $status === 'active' ? 'BRANCH_ACTIVATED' : 'BRANCH_DEACTIVATED', 'branch', $branchId, ucfirst($status) . ' branch ' . $branch['branch_name']);
-        flash_set('success', 'Branch "' . $branch['branch_name'] . '" is now ' . $status . '.');
+        // The audit line above stays English on purpose: it is evidence for an
+        // investigator, not UI. The flash is the visitor's copy.
+        flash_set('success', t('branches.status_now', [
+            'name'   => $branch['branch_name'],
+            'status' => t($status === 'active' ? 'common.active' : 'common.inactive'),
+        ]));
     }
     redirect('owner/branches.php');
 }
@@ -61,26 +66,26 @@ if ($action === 'create' && isPost()) {
     ];
     $errors = [];
     validate_required($data, [
-        'branch_code' => 'Branch code',
-        'branch_name' => 'Branch name',
+        'branch_code' => t('common.branch_code'),
+        'branch_name' => t('branches.name_label'),
     ], $errors);
     if (!preg_match('/^[A-Za-z0-9_-]{2,20}$/', $data['branch_code'])) {
-        $errors['branch_code'] = 'Branch code must be 2–20 letters, numbers, dashes or underscores.';
+        $errors['branch_code'] = t('branches.code_format');
     }
     if (Branch::findByCode($data['branch_code'])) {
-        $errors['branch_code'] = 'This branch code is already in use.';
+        $errors['branch_code'] = t('branches.code_in_use');
     }
-    validate_email($data, ['email' => 'Email'], $errors);
+    validate_email($data, ['email' => t('common.email')], $errors);
 
     if ($errors) {
-        flash_set('danger', 'Please fix the highlighted fields.');
+        flash_set('danger', t('common.fix_fields'));
         $showCreate = true;
         $createData = $data;
         $createErrors = $errors;
     } else {
         $newId = Branch::create($data);
         log_activity((int) $user['id'], null, 'BRANCH_CREATED', 'branch', $newId, 'Created branch ' . $data['branch_name'] . ' (' . $data['branch_code'] . ')');
-        flash_set('success', 'Branch "' . $data['branch_name'] . '" created successfully.');
+        flash_set('success', t('branches.created_ok', ['name' => $data['branch_name']]));
         redirect('owner/branches.php');
     }
 }
@@ -107,27 +112,27 @@ if ($action === 'edit' && isPost()) {
     ];
     $errors = [];
     validate_required($data, [
-        'branch_code' => 'Branch code',
-        'branch_name' => 'Branch name',
+        'branch_code' => t('common.branch_code'),
+        'branch_name' => t('branches.name_label'),
     ], $errors);
     if (!preg_match('/^[A-Za-z0-9_-]{2,20}$/', $data['branch_code'])) {
-        $errors['branch_code'] = 'Branch code must be 2–20 letters, numbers, dashes or underscores.';
+        $errors['branch_code'] = t('branches.code_format');
     }
     $dup = Database::fetch('SELECT id FROM branches WHERE branch_code = ? AND id != ? AND deleted_at IS NULL', [$data['branch_code'], $branchId]);
     if ($dup) {
-        $errors['branch_code'] = 'This branch code is already in use.';
+        $errors['branch_code'] = t('branches.code_in_use');
     }
-    validate_email($data, ['email' => 'Email'], $errors);
+    validate_email($data, ['email' => t('common.email')], $errors);
 
     if ($errors) {
-        flash_set('danger', 'Please fix the highlighted fields.');
+        flash_set('danger', t('common.fix_fields'));
         $showEdit = $existing;
         $editData = $data;
         $editErrors = $errors;
     } else {
         Branch::update($branchId, $data);
         log_activity((int) $user['id'], null, 'BRANCH_UPDATED', 'branch', $branchId, 'Updated branch ' . $data['branch_name']);
-        flash_set('success', 'Branch updated successfully.');
+        flash_set('success', t('branches.updated_ok'));
         redirect('owner/branches.php');
     }
 }
@@ -139,7 +144,7 @@ if ($action === 'edit' && isGet()) {
     $branchId = (int) get('id', 0);
     $showEdit = $branchId ? Branch::find($branchId) : null;
     if (!$showEdit) {
-        flash_set('danger', 'Branch not found.');
+        flash_set('danger', t('branches.not_found'));
         redirect('owner/branches.php');
     }
 }
@@ -148,8 +153,8 @@ if ($action === 'edit' && isGet()) {
 // LIST
 // ------------------------------------------------------------------
 $branches = Branch::listWithSummary();
-$pageTitle = 'Branches';
-$pageSubtitle = 'Manage all hotel branches';
+$pageTitle = t('branches.title');
+$pageSubtitle = t('branches.subtitle');
 $activeMenu = 'branches';
 
 ob_start();
@@ -160,7 +165,7 @@ ob_start();
     <div class="col-lg-8">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Add New Branch</h5>
+                <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i><?= e(t('branches.add_new')) ?></h5>
                 <a href="<?= url('owner/branches.php') ?>" class="btn btn-sm btn-light"><i class="bi bi-x-lg"></i></a>
             </div>
             <div class="card-body">
@@ -168,7 +173,7 @@ ob_start();
                     'actionUrl' => url('owner/branches.php?action=create'),
                     'data' => $createData ?? [],
                     'errors' => $createErrors ?? [],
-                    'submitLabel' => 'Create Branch',
+                    'submitLabel' => t('branches.create'),
                 ]); ?>
             </div>
         </div>
@@ -181,7 +186,7 @@ ob_start();
     <div class="col-lg-8">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Edit Branch — <?= e($showEdit['branch_name']) ?></h5>
+                <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i><?= e(t('branches.edit_title', ['name' => $showEdit['branch_name']])) ?></h5>
                 <a href="<?= url('owner/branches.php') ?>" class="btn btn-sm btn-light"><i class="bi bi-x-lg"></i></a>
             </div>
             <div class="card-body">
@@ -189,7 +194,7 @@ ob_start();
                     'actionUrl' => url('owner/branches.php?action=edit'),
                     'data' => array_merge($showEdit, $editData ?? []) ,
                     'errors' => $editErrors ?? [],
-                    'submitLabel' => 'Save Changes',
+                    'submitLabel' => t('common.save_changes'),
                     'idField' => $showEdit['id'],
                 ]); ?>
             </div>
@@ -200,29 +205,29 @@ ob_start();
 
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h5 class="mb-0"><i class="bi bi-buildings me-2"></i><?= count($branches) ?> Branch<?= count($branches) === 1 ? '' : 'es' ?></h5>
-        <a href="<?= url('owner/branches.php?action=create') ?>" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg me-1"></i>Add Branch</a>
+        <h5 class="mb-0"><i class="bi bi-buildings me-2"></i><?= e(tn('branches.count', count($branches))) ?></h5>
+        <a href="<?= url('owner/branches.php?action=create') ?>" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg me-1"></i><?= e(t('branches.add')) ?></a>
     </div>
     <div class="card-body p-0">
         <?php if (!$branches) : ?>
             <div class="empty-state">
                 <i class="bi bi-buildings"></i>
-                <p class="mb-1">No branches found.</p>
-                <p class="mb-3 text-muted">Create your first branch to get started.</p>
-                <a href="<?= url('owner/branches.php?action=create') ?>" class="btn btn-sm btn-primary">Create Branch</a>
+                <p class="mb-1"><?= e(t('branches.empty')) ?></p>
+                <p class="mb-3 text-muted"><?= e(t('branches.empty_hint')) ?></p>
+                <a href="<?= url('owner/branches.php?action=create') ?>" class="btn btn-sm btn-primary"><?= e(t('branches.create')) ?></a>
             </div>
         <?php else : ?>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th class="ps-3">Code</th>
-                        <th>Branch</th>
-                        <th class="text-center">Admins</th>
-                        <th>Last Upload</th>
-                        <th>Created</th>
-                        <th>Status</th>
-                        <th class="pe-3 text-end">Actions</th>
+                        <th class="ps-3"><?= e(t('col.code')) ?></th>
+                        <th><?= e(t('common.branch')) ?></th>
+                        <th class="text-center"><?= e(t('col.admins')) ?></th>
+                        <th><?= e(t('col.last_upload')) ?></th>
+                        <th><?= e(t('col.created')) ?></th>
+                        <th><?= e(t('common.status')) ?></th>
+                        <th class="pe-3 text-end"><?= e(t('common.actions')) ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -238,27 +243,27 @@ ob_start();
                         <td class="text-muted small"><?= e(format_date($b['created_at'])) ?></td>
                         <td>
                             <?php if ($b['status'] === 'active') : ?>
-                                <span class="badge bg-success-subtle text-success">Active</span>
+                                <span class="badge bg-success-subtle text-success"><?= e(t('common.active')) ?></span>
                             <?php else : ?>
-                                <span class="badge bg-secondary-subtle text-secondary">Inactive</span>
+                                <span class="badge bg-secondary-subtle text-secondary"><?= e(t('common.inactive')) ?></span>
                             <?php endif; ?>
                         </td>
                         <td class="pe-3 text-end">
-                            <a href="<?= url('owner/branch-view.php') ?>?id=<?= $b['id'] ?>" class="btn btn-xs btn-light" title="View"><i class="bi bi-eye"></i></a>
-                            <a href="<?= url('owner/branches.php?action=edit&id=' . $b['id']) ?>" class="btn btn-xs btn-light" title="Edit"><i class="bi bi-pencil"></i></a>
+                            <a href="<?= url('owner/branch-view.php') ?>?id=<?= $b['id'] ?>" class="btn btn-xs btn-light" title="<?= e(t('common.view')) ?>"><i class="bi bi-eye"></i></a>
+                            <a href="<?= url('owner/branches.php?action=edit&id=' . $b['id']) ?>" class="btn btn-xs btn-light" title="<?= e(t('common.edit')) ?>"><i class="bi bi-pencil"></i></a>
                             <form method="post" action="<?= url('owner/branches.php?action=status') ?>" class="d-inline">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="id" value="<?= $b['id'] ?>">
                                 <input type="hidden" name="status" value="<?= $b['status'] === 'active' ? 'inactive' : 'active' ?>">
-                                <button type="submit" class="btn btn-xs btn-light" title="<?= $b['status'] === 'active' ? 'Deactivate' : 'Activate' ?>">
+                                <button type="submit" class="btn btn-xs btn-light" title="<?= e($b['status'] === 'active' ? t('branches.deactivate') : t('branches.activate')) ?>">
                                     <i class="bi <?= $b['status'] === 'active' ? 'bi-pause-circle' : 'bi-play-circle' ?>"></i>
                                 </button>
                             </form>
                             <form method="post" action="<?= url('owner/branches.php?action=delete') ?>" class="d-inline"
-                                      data-confirm="Delete this branch? Its bills will be removed from view. This cannot be undone.">
+                                      data-confirm="<?= e(t('branches.delete_confirm')) ?>">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="id" value="<?= $b['id'] ?>">
-                                <button type="submit" class="btn btn-xs btn-light text-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                                <button type="submit" class="btn btn-xs btn-light text-danger" title="<?= e(t('common.delete')) ?>"><i class="bi bi-trash"></i></button>
                             </form>
                         </td>
                     </tr>

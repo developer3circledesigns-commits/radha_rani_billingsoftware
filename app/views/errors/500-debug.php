@@ -14,12 +14,12 @@ $errorWhere   = e($e->getFile() . ':' . $e->getLine());
 $showTrace    = APP_ENV !== 'production';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= e(Lang::code()) ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <title>Error details · <?= e(APP_NAME) ?></title>
+    <title><?= e(t('error.debug.title')) ?> · <?= e(APP_NAME) ?></title>
     <link rel="icon" type="image/png" href="<?= url('assets/images/logo.png') ?>">
     <link rel="stylesheet" href="<?= url('assets/vendor/bootstrap/css/bootstrap.min.css') ?>">
     <style>
@@ -43,12 +43,12 @@ $showTrace    = APP_ENV !== 'production';
 </head>
 <body>
 <div class="card">
-    <h1>Application error</h1>
-    <p class="sub">The full technical detail is below because this site is not in production mode.</p>
+    <h1><?= e(t('error.debug.heading')) ?></h1>
+    <p class="sub"><?= e(t('error.debug.sub')) ?></p>
 
     <div class="row">
-        <span class="tag"><b>Type</b><?= $errorClass ?></span>
-        <span class="tag"><b>At</b><?= $errorWhere ?></span>
+        <span class="tag"><b><?= e(t('error.debug.type')) ?></b><?= $errorClass ?></span>
+        <span class="tag"><b><?= e(t('error.debug.at')) ?></b><?= $errorWhere ?></span>
     </div>
 
     <pre><?= $errorMessage ?></pre>
@@ -62,20 +62,21 @@ $showTrace    = APP_ENV !== 'production';
         || stripos($rawMessage, 'Unknown database') !== false;
     ?>
     <?php if ($missingTable): ?>
-        <p><strong>Likely cause:</strong> the database or one of its tables is missing. Import
-           <code>database/init.sql</code> through hPanel &rarr; phpMyAdmin &rarr; Import, selecting
-           the same database name as in <code>app/config/config.local.php</code>.</p>
+        <p><?= t('error.debug.cause', [
+            'sql'    => 'database/init.sql',
+            'config' => 'app/config/config.local.php',
+        ]) ?></p>
     <?php endif; ?>
 
     <?php if ($showTrace): ?>
         <details>
-            <summary>Stack trace</summary>
+            <summary><?= e(t('error.debug.trace')) ?></summary>
             <pre><?= e($e->getTraceAsString()) ?></pre>
         </details>
     <?php endif; ?>
 
     <p class="sub" style="margin:18px 0 0">
-        Set <code>APP_ENV</code> to <code>production</code> once setup is finished to hide this page.
+        <?= t('error.debug.hide', ['env' => 'APP_ENV', 'mode' => 'production']) ?>
     </p>
 </div>
 </body>

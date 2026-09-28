@@ -49,7 +49,7 @@ function pagination(array $pagination, string $baseUrl): ?string
     $page = (int) $pagination['page'];
     $pages = (int) $pagination['pages'];
 
-    $html = '<nav aria-label="Pagination"><ul class="pagination pagination-sm mb-0">';
+    $html =     '<nav aria-label="' . e(t('common.page_of', ['page' => $page, 'pages' => $pages])) . '"><ul class="pagination pagination-sm mb-0">';
     $html .= '<li class="page-item ' . ($page <= 1 ? 'disabled' : '') . '">';
     $html .= '<a class="page-link" href="' . e($baseUrl) . $sep . 'page=' . ($page - 1) . '">&laquo;</a></li>';
 
@@ -69,9 +69,37 @@ function pagination(array $pagination, string $baseUrl): ?string
 function payment_type_badge(string $type): string
 {
     if ($type === 'cash') {
-        return '<span class="badge badge-cash"><i class="bi bi-cash-coin me-1"></i>Cash</span>';
+        return '<span class="badge badge-cash"><i class="bi bi-cash-coin me-1"></i>' . e(t('common.cash')) . '</span>';
     }
-    return '<span class="badge badge-card"><i class="bi bi-credit-card me-1"></i>Card</span>';
+    return '<span class="badge badge-card"><i class="bi bi-credit-card me-1"></i>' . e(t('common.card')) . '</span>';
+}
+
+/**
+ * The subset of the catalogue the browser needs, for window.APP.i18n.
+ *
+ * Only the js.* keys plus a few shared ones are sent, so a 490-key catalogue
+ * is not serialised into every page. Values are raw; the caller json_encode()s
+ * with the HEX flags, and no browser code builds HTML from them.
+ *
+ * @return array<string,string>
+ */
+function client_i18n_strings(): array
+{
+    /** @var array{strings?:array<string,string>} $catalogue */
+    $catalogue = require APP_PATH . '/lang/' . Lang::code() . '.php';
+    $strings   = is_array($catalogue['strings'] ?? null) ? $catalogue['strings'] : [];
+
+    $out = [];
+    foreach ($strings as $key => $value) {
+        if (str_starts_with($key, 'js.') || in_array($key, [
+            'common.confirm', 'common.cancel', 'common.yes_continue',
+            'common.save', 'common.close',
+            'common.cash', 'common.card',
+        ], true)) {
+            $out[$key] = $value;
+        }
+    }
+    return $out;
 }
 
 function bill_icon(): string
