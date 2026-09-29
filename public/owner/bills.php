@@ -97,7 +97,7 @@ ob_start();
                 <label class="form-label small text-muted mb-1" for="f_bdate"><?= e(t('bills.filter_bdate')) ?></label>
                 <input type="date" class="form-control form-control-sm" id="f_bdate" name="business_date" value="<?= e($filters['business_date'] ?? '') ?>">
             </div>
-            <div class="col-md-2">
+            <div class="col-md-2 d-none">
                 <label class="form-label small text-muted mb-1" for="f_udate"><?= e(t('bills.filter_udate')) ?></label>
                 <input type="date" class="form-control form-control-sm" id="f_udate" name="uploaded_at" value="<?= e($filters['uploaded_at'] ?? '') ?>">
             </div>

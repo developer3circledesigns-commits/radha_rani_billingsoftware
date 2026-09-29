@@ -30,6 +30,11 @@ $pageSubtitle = $branch['branch_name'];
 $activeMenu = 'upload';
 $extraScripts = ['assets/js/upload.js'];
 
+// Which payment type is pre-selected. The page loads with the card bill the
+// default; "Upload Another" reloads with the opposite of the type that was
+// just uploaded, so the next form never silently defaults to a stale choice.
+$defaultPayment = get('payment_default', 'cash') === 'cash' ? 'cash' : 'card';
+
 ob_start();
 ?>
 <div class="row g-4">
@@ -47,7 +52,7 @@ ob_start();
                             <label class="form-label fw-semibold"><?= e(t('upload.payment_type')) ?> <span class="text-danger">*</span></label>
                             <div class="row g-3">
                                 <div class="col-6">
-                                    <input type="radio" class="btn-check" name="payment_type" id="pt_cash" value="cash" checked>
+                                    <input type="radio" class="btn-check" name="payment_type" id="pt_cash" value="cash"<?= $defaultPayment === 'cash' ? ' checked' : '' ?>>
                                     <label class="payment-type-card payment-cash" for="pt_cash">
                                         <i class="bi bi-cash-coin display-6"></i>
                                         <span class="fw-semibold"><?= e(t('upload.cash_bill')) ?></span>
@@ -55,7 +60,7 @@ ob_start();
                                     </label>
                                 </div>
                                 <div class="col-6">
-                                    <input type="radio" class="btn-check" name="payment_type" id="pt_card" value="card">
+                                    <input type="radio" class="btn-check" name="payment_type" id="pt_card" value="card"<?= $defaultPayment === 'card' ? ' checked' : '' ?>>
                                     <label class="payment-type-card payment-card" for="pt_card">
                                         <i class="bi bi-credit-card display-6"></i>
                                         <span class="fw-semibold"><?= e(t('upload.card_bill')) ?></span>

@@ -220,7 +220,16 @@
                 againBtn.appendChild(document.createTextNode(
                     ' ' + txt('js.upload_another', 'Upload Another')
                 ));
-                againBtn.addEventListener('click', function () { window.location.reload(); });
+                // The next form defaults to the opposite of the type that was
+                // just uploaded: a cash upload is followed by a card-default
+                // form and vice versa, instead of a stale re-selection. The
+                // server re-renders the markup with that default.
+                const nextDefault = data.data.payment === 'cash' ? 'card' : 'cash';
+                againBtn.addEventListener('click', function () {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('payment_default', nextDefault);
+                    window.location.href = url.toString();
+                });
 
                 resultActions.appendChild(viewLink);
                 resultActions.appendChild(againBtn);
