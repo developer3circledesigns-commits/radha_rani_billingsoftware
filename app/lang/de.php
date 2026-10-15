@@ -637,7 +637,6 @@ return [
         // ==============================================================
         // Authentifizierung (Seite)
         // ==============================================================
-        'auth.too_many_attempts'  => 'Zu viele fehlgeschlagene Versuche. Das Konto ist für :mins Minuten gesperrt. Bitte versuchen Sie es später erneut.',
         'auth.enter_both'         => 'Bitte geben Sie Anmeldename und Passwort ein.',
         'auth.account_inactive'   => 'Dieses Konto ist inaktiv. Wenden Sie sich an die Administration.',
         'auth.branch_inactive'    => 'Die zu diesem Konto gehörende Filiale ist inaktiv. Wenden Sie sich an die Administration.',
@@ -706,7 +705,6 @@ return [
         'api.save_failed'           => 'Das hochgeladene PDF konnte nicht gespeichert werden. Bitte erneut versuchen.',
         'api.ok_bill_uploaded'      => 'Beleg wurde erfolgreich hochgeladen.',
         'api.credentials_required'  => 'Anmeldename und Passwort sind erforderlich.',
-        'api.too_many_attempts'     => 'Zu viele fehlgeschlagene Versuche. Bitte versuchen Sie es später erneut.',
         'api.invalid_credentials'   => 'Anmeldename oder Passwort ist ungültig.',
         'api.account_inactive'      => 'Dieses Konto ist inaktiv. Wenden Sie sich an die Administration.',
         'api.api_branch_inactive'   => 'Die zu diesem Konto gehörende Filiale ist inaktiv.',

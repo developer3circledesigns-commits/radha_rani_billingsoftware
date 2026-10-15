@@ -29,11 +29,6 @@ if ($login === '' || $password === '') {
     api_error(t('api.credentials_required'), 422);
 }
 
-// Throttling
-if (!throttle_allow_login($login)) {
-    api_error(t('api.too_many_attempts'), 429);
-}
-
 $userRow = User::findByLogin($login);
 
 if (!$userRow || !password_verify($password, $userRow['password_hash'])) {
@@ -50,7 +45,6 @@ if (!$userRow || !password_verify($password, $userRow['password_hash'])) {
             null
         );
     }
-    throttle_register_failure($login);
     api_error(t('api.invalid_credentials'), 401);
 }
 
@@ -81,7 +75,6 @@ $_SESSION['logged_in_at']  = time();
 $_SESSION['last_activity'] = time();
 
 User::updateLastLogin((int) $userRow['id']);
-throttle_reset($login);
 
 SecurityLogger::hintActor($userRow['username'], (int) $userRow['id'], $userRow['role']);
 

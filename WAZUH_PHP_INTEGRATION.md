@@ -90,8 +90,6 @@ never becomes a field name.
 | Event | Meaning |
 |---|---|
 | `login_success` / `login_failed` | Authentication outcome |
-| `account_locked` | Lockout after repeated failures |
-| `rate_limit_triggered` | Login throttle fired |
 | `unauthorized_access` | No session where one required |
 | `forbidden_access` | Authenticated but role not permitted |
 | `sensitive_record_access` | Cross-branch or otherwise out-of-scope record access |
@@ -133,8 +131,8 @@ covered without editing each one:
 log_activity($userId, $branchId, 'LOGIN_FAILED', 'user', $id, $description, $target);
 ```
 
-Events that have no existing audit call — CSRF failures, throttling,
-authorization denials, validation errors — call `SecurityLogger` directly in
+Events that have no existing audit call — CSRF failures, authorization
+denials, validation errors — call `SecurityLogger` directly in
 `app/middleware/auth.php` and at the entry points.
 
 Files touched: `app/bootstrap.php`, `app/config/config.php`,

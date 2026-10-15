@@ -114,12 +114,6 @@ define('ALLOWED_MIME', 'application/pdf');
 define('ALLOWED_EXT', 'pdf');
 
 // ------------------------------------------------------------------
-// Login throttling
-// ------------------------------------------------------------------
-define('LOGIN_MAX_ATTEMPTS', (int) env('LOGIN_MAX_ATTEMPTS', 5));
-define('LOGIN_LOCKOUT_MINUTES', (int) env('LOGIN_LOCKOUT_MINUTES', 15));
-
-// ------------------------------------------------------------------
 // Security event log (Wazuh feed)
 //
 // One JSON object per line, appended by app/helpers/SecurityLogger.php and

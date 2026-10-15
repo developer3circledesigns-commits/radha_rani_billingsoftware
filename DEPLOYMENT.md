@@ -496,7 +496,7 @@ the database name, hostname and file paths to any visitor. Details go to
 
 A useful tell: **if the login form renders but submitting it returns 500**, the failure
 is at the database, not the page. The form itself needs no database; the first thing
-the POST handler does is query the login-throttle table.
+the POST handler does is look the account up in the database.
 
 `Access denied for user 'X'@'localhost' (using password: NO)` means `config.local.php`
 was not found or `DB_PASS` was left out — the app fell back to its built-in defaults.

@@ -625,7 +625,6 @@ return [
         // ==============================================================
         // Authentication (page)
         // ==============================================================
-        'auth.too_many_attempts'  => 'Too many failed attempts. Account locked for :mins minutes. Please try again later.',
         'auth.enter_both'         => 'Please enter both login ID and password.',
         'auth.account_inactive'   => 'This account is inactive. Contact the administrator.',
         'auth.branch_inactive'    => 'The branch associated with this account is inactive. Contact the administrator.',
@@ -694,7 +693,6 @@ return [
         'api.save_failed'           => 'Could not save the uploaded PDF. Please retry.',
         'api.ok_bill_uploaded'      => 'Bill uploaded successfully.',
         'api.credentials_required'  => 'Login ID and password are required.',
-        'api.too_many_attempts'     => 'Too many failed attempts. Please try again later.',
         'api.invalid_credentials'   => 'Invalid login ID or password.',
         'api.account_inactive'      => 'This account is inactive. Contact the administrator.',
         'api.api_branch_inactive'   => 'The branch associated with this account is inactive.',

@@ -118,8 +118,8 @@ docker compose up -d          # re-runs init.sql
 - **Branch management** — CRUD, activate/inactivate, soft-delete branches.
 
 - **Admin management** — CRUD branch admins, reset-password modal.
-- **Audit trail** — every sign-in, failed login, upload, and admin action recorded
-  (`audit_logs`), plus login throttling (5 tries / 15 min lockout).
+ - **Audit trail** — every sign-in, failed login, upload, and admin action recorded
+   (`audit_logs`). Failed logins are logged but never lock the account.
 - **Soft deletes** — bills and branches are marked deleted, never physically removed;
   no financial totals exposed, only document counts.
 - **Bilingual UI (English / German)** — every page, form, flash message, and API
@@ -300,7 +300,7 @@ app/
   bootstrap.php          entry bootstrap: session, error handlers, class autoload
   config/config.php      env-driven configuration & path constants
   helpers/               Database (PDO), functions, view rendering, Lang
-  middleware/auth.php    auth guards, CSRF, login throttling, audit logging
+  middleware/auth.php    auth guards, CSRF, audit logging
   models/                Branch, User, Bill, AuditLog, Setting
   validators/            PdfValidator
   lang/                  en.php, de.php — UI string catalogues (see Languages)

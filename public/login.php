@@ -27,14 +27,6 @@ if (isPost()) {
         csrf_fail();
     }
 
-    // Login throttling
-    if (strlen($username)) {
-        if (!throttle_allow_login($username)) {
-            flash_set('danger', t('auth.too_many_attempts', ['mins' => LOGIN_LOCKOUT_MINUTES]));
-            redirect('login.php');
-        }
-    }
-
     if ($username === '' || $password === '') {
         SecurityLogger::log(SecurityLogger::INVALID_INPUT, [
             'reason'      => 'empty_credentials_field',
@@ -68,7 +60,6 @@ if (isPost()) {
         $_SESSION['last_activity'] = time();
 
         User::updateLastLogin((int) $userRow['id']);
-        throttle_reset($username);
 
         // Identifies the account for any later event in this request.
         SecurityLogger::hintActor($userRow['username'], (int) $userRow['id'], $userRow['role']);
@@ -97,7 +88,6 @@ if (isPost()) {
             null
         );
     }
-    $attempts = throttle_register_failure($username);
 
     flash_set('danger', t('auth.invalid_credentials'));
     $old['login'] = $username;
@@ -481,7 +471,7 @@ if (isPost()) {
     <!-- <div class="l1-after">
         <div class="l1-after-row">
             <i class="bi bi-shield-lock"></i>
-            <span><strong>Throttled &amp; logged</strong><small>Failed attempts lock an account for <?= LOGIN_LOCKOUT_MINUTES ?> minutes.</small></span>
+            <span><strong>Logged</strong><small>Every failed attempt is recorded for review.</small></span>
         </div>
         <div class="l1-after-row">
             <i class="bi bi-person-badge"></i>
