@@ -153,7 +153,7 @@ ob_start();
                         <td class="ps-3 text-muted small">#<?= $bill['id'] ?></td>
                         <td>
                             <div class="d-flex align-items-center gap-2">
-                                <i class="bi bi-file-earmark-pdf-fill text-danger fs-5"></i>
+                                <?= bill_source_icon($bill) ?>
                                 <div class="text-truncate" style="max-width:220px" title="<?= e($bill['original_filename']) ?>">
                                     <span><?= e($bill['original_filename']) ?></span>
                                     <?php if (!empty($bill['description'])) : ?>

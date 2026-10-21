@@ -85,34 +85,116 @@ if ($businessDate > $today) {
     api_error(t('api.future_date'), 422, ['business_date' => t('api.future_date')]);
 }
 
-if (empty($_FILES['pdf_file']) || ($_FILES['pdf_file']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-    api_error(t('api.choose_pdf'), 422, ['pdf_file' => t('api.no_pdf_selected')]);
+$uploadMode = $_POST['upload_mode'] ?? 'pdf';
+if (!in_array($uploadMode, ['pdf', 'photo'], true)) {
+    api_error(t('api.invalid_upload_mode'), 422);
 }
+$uploadSource = $uploadMode;
+$sourceMime = null;
 
-$origName = sanitize_filename($_FILES['pdf_file']['name']);
+if ($uploadSource === 'photo') {
+    // A photo is normalised to JPEG by the browser, embedded into a PDF and
+    // then enters the exact same storage path as a PDF upload.
+    $fileField = 'photo_file';
+    if (empty($_FILES[$fileField]) || ($_FILES[$fileField]['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        api_error(t('api.choose_photo'), 422, [$fileField => t('api.no_photo_selected')]);
+    }
 
-// Override effective max size for the validator
-$file = $_FILES['pdf_file'];
-$validation = PdfValidator::validate($file, $origName);
-if (!$validation['ok']) {
-    // A rejected upload is still an upload attempt and is worth an analyst
-    // seeing: repeated failures against the PDF-only allow-list are how a
-    // probe for an executable upload looks from the server side. Metadata
-    // only - the file is never read here and never described further.
-    SecurityLogger::fileUploaded(
-        $file,
-        $origName,
-        'rejected',
-        'rejected',
-        $user,
-        ['reason' => 'pdf_validation_failed', 'branch_id' => (int) $user['branch_id']]
-    );
-    api_error(implode(' ', $validation['errors']), 422, ['pdf_file' => $validation['errors']]);
-}
+    $file = $_FILES[$fileField];
+    $photoName = sanitize_filename((string) $file['name']);
+    $validation = PhotoValidator::validate($file, $photoName);
+    if (!$validation['ok']) {
+        SecurityLogger::fileUploaded(
+            $file,
+            $photoName,
+            'rejected',
+            'rejected',
+            $user,
+            [
+                'reason'        => 'photo_validation_failed',
+                'branch_id'     => (int) $user['branch_id'],
+                'upload_source' => 'photo',
+            ]
+        );
+        api_error(implode(' ', $validation['errors']), 422, [$fileField => $validation['errors']]);
+    }
 
-// Extra size check vs configured limit
-if ((int) $file['size'] > $maxSize) {
-    api_error(t('api.file_too_large', ['size' => format_bytes($maxSize)]), 422, ['pdf_file' => t('api.file_exceeds_limit')]);
+    // Reserve room for the PDF wrapper and object table, so a photo that just
+    // fits the JPEG limit cannot produce a PDF that then exceeds it.
+    $photoMax = max(1, $maxSize - 65536);
+    if ((int) $file['size'] > $photoMax) {
+        api_error(
+            t('api.photo_too_large', ['size' => format_bytes($photoMax)]),
+            422,
+            [$fileField => t('api.photo_exceeds_limit')]
+        );
+    }
+
+    if (!is_uploaded_file($file['tmp_name'])) {
+        api_error(t('api.upload_failed'), 500);
+    }
+
+    $jpeg = @file_get_contents($file['tmp_name']);
+    if ($jpeg === false || $jpeg === '') {
+        api_error(t('api.unreadable_file'), 500);
+    }
+
+    $base = pathinfo($photoName, PATHINFO_FILENAME);
+    $base = trim((string) preg_replace('/[^A-Za-z0-9._-]+/', '_', $base), '._-');
+    if ($base === '') {
+        $base = 'Photo';
+    }
+    if (!str_starts_with(strtolower($base), 'photo')) {
+        $base = 'Photo_' . $base;
+    }
+    $origName = substr($base, 0, 180) . '.pdf';
+
+    try {
+        $bytes = BillPhotoPdf::fromJpeg($jpeg, ['title' => $origName]);
+    } catch (Throwable $e) {
+        error_log('[bill-upload] photo conversion failed: ' . $e->getMessage());
+        api_error(t('api.photo_convert_failed'), 500);
+    }
+
+    if (strlen($bytes) > $maxSize) {
+        api_error(
+            t('api.photo_too_large', ['size' => format_bytes($maxSize)]),
+            422,
+            [$fileField => t('api.photo_exceeds_limit')]
+        );
+    }
+
+    $sourceMime = 'image/jpeg';
+} else {
+    $fileField = 'pdf_file';
+    if (empty($_FILES[$fileField]) || ($_FILES[$fileField]['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        api_error(t('api.choose_pdf'), 422, [$fileField => t('api.no_pdf_selected')]);
+    }
+
+    $file = $_FILES[$fileField];
+    $origName = sanitize_filename((string) $file['name']);
+
+    $validation = PdfValidator::validate($file, $origName);
+    if (!$validation['ok']) {
+        // A rejected upload is still an upload attempt and is worth an analyst
+        // seeing: repeated failures against the PDF-only allow-list are how a
+        // probe for an executable upload looks from the server side. Metadata
+        // only - the file is never read here and never described further.
+        SecurityLogger::fileUploaded(
+            $file,
+            $origName,
+            'rejected',
+            'rejected',
+            $user,
+            ['reason' => 'pdf_validation_failed', 'branch_id' => (int) $user['branch_id']]
+        );
+        api_error(implode(' ', $validation['errors']), 422, [$fileField => $validation['errors']]);
+    }
+
+    // Extra size check vs configured limit
+    if ((int) $file['size'] > $maxSize) {
+        api_error(t('api.file_too_large', ['size' => format_bytes($maxSize)]), 422, [$fileField => t('api.file_exceeds_limit')]);
+    }
 }
 
 // ---- Move & store ----
@@ -121,7 +203,8 @@ if ($branchCode === '') {
     $branchCode = 'BR' . (int) $branch['id'];
 }
 
-$storedName = $branchCode . '_' . date('Ymd_His') . '_' . strtoupper($paymentType) . '_' . secure_rand_hex(4) . '.pdf';
+$storedName = $branchCode . '_' . date('Ymd_His') . '_' . strtoupper($paymentType)
+    . ($uploadSource === 'photo' ? '_PHOTO' : '') . '_' . secure_rand_hex(4) . '.pdf';
 $paths = BillStorage::buildUploadPath($branchCode, $paymentType, $storedName);
 
 if (!is_uploaded_file($file['tmp_name'])) {
@@ -129,9 +212,12 @@ if (!is_uploaded_file($file['tmp_name'])) {
 }
 
 // Read the uploaded bytes once; they are used for BOTH copies and the hash.
-$bytes = @file_get_contents($file['tmp_name']);
-if ($bytes === false || $bytes === '') {
-    api_error(t('api.unreadable_file'), 500);
+// In photo mode the PDF was already produced from the JPEG above.
+if ($uploadSource !== 'photo') {
+    $bytes = @file_get_contents($file['tmp_name']);
+    if ($bytes === false || $bytes === '') {
+        api_error(t('api.unreadable_file'), 500);
+    }
 }
 $hash = hash('sha256', $bytes);
 $size = strlen($bytes);
@@ -166,6 +252,8 @@ try {
         'pdf_bytes'         => $bytes,
         'pdf_hash'          => $hash,
         'storage_status'    => BillStorage::statusFor($fileSaved, true),
+        'upload_source'     => $uploadSource,
+        'source_mime'       => $sourceMime,
     ]);
 } catch (Throwable $e) {
     if ($fileSaved && is_file($paths['abs'])) {
@@ -195,13 +283,22 @@ SecurityLogger::fileUploaded(
         'bill_id'       => (int) $billId,
         'payment_type'  => $paymentType,
         'business_date' => $businessDate,
+        'upload_source' => $uploadSource,
+        'source_mime'   => $sourceMime,
     ]
 );
 
 // Audit detail stays English on purpose: the activity log is evidence, and
 // translating its free text would make cross-locale searching unreliable.
-log_activity((int) $user['id'], (int) $branch['id'], 'BILL_UPLOADED', 'bill', $billId,
-    'Uploaded ' . ($paymentType === 'cash' ? 'Cash' : 'Card') . ' bill for ' . $businessDate . ': ' . $origName);
+log_activity(
+    (int) $user['id'],
+    (int) $branch['id'],
+    $uploadSource === 'photo' ? 'BILL_PHOTO_UPLOADED' : 'BILL_UPLOADED',
+    'bill',
+    $billId,
+    ($uploadSource === 'photo' ? 'Captured photo of ' : 'Uploaded ')
+        . ($paymentType === 'cash' ? 'Cash' : 'Card') . ' bill for ' . $businessDate . ': ' . $origName
+);
 
 /**
  * Settle the "bills not uploaded" alert this bill has just changed.
@@ -256,6 +353,7 @@ api_ok([
     'filename'    => $origName,
     'payment'     => $paymentType,
     'biz_date'    => $businessDate,
+    'source'      => $uploadSource,
     'size'        => format_bytes($size),
     'view_url'    => url('view.php') . '?id=' . $billId,
     'download_url'=> url('download.php') . '?id=' . $billId,

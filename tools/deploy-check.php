@@ -462,7 +462,7 @@ try {
     // Dual-storage columns
     if (in_array('bills', $tables, true)) {
         $billCols = array_column(Database::fetchAll('SHOW COLUMNS FROM bills'), 'Field');
-        foreach (['pdf_bytes', 'pdf_hash', 'storage_status', 'archived_path', 'purge_after'] as $c) {
+        foreach (['pdf_bytes', 'pdf_hash', 'storage_status', 'archived_path', 'purge_after', 'upload_source', 'source_mime'] as $c) {
             if (in_array($c, $billCols, true)) {
                 $ok("bills.{$c}");
             } else {

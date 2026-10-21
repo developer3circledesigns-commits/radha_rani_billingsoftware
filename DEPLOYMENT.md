@@ -233,6 +233,12 @@ Migration `003` creates the daily-compliance tables (`notifications`,
 its current value, so turning the feature on is a decision you make in
 **Owner → Settings** afterwards, not a side effect of deploying.
 
+Migration `004` adds `bills.upload_source` and `bills.source_mime`, which record
+whether a bill arrived as a PDF upload or a camera photo. Existing rows default to
+`pdf`. Photo capture converts the JPEG to a PDF in plain PHP, so no GD, Imagick or
+other image extension is required on the server. The live camera itself needs HTTPS
+(or `localhost`); on plain HTTP the page falls back to the device camera input.
+
 ---
 
 ## 5. Permissions

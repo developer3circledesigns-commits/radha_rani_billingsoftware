@@ -64,6 +64,8 @@ CREATE TABLE IF NOT EXISTS bills (
     file_path VARCHAR(500) NOT NULL,
     archived_path VARCHAR(500) NULL,
     mime_type VARCHAR(100) NOT NULL DEFAULT 'application/pdf',
+    upload_source ENUM('pdf', 'photo') NOT NULL DEFAULT 'pdf',
+    source_mime VARCHAR(100) NULL,
     storage_status ENUM('both', 'file_only', 'db_only', 'none') NOT NULL DEFAULT 'file_only',
     file_size INT UNSIGNED NOT NULL DEFAULT 0,
     description VARCHAR(500) NULL,

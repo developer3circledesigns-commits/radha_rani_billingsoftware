@@ -79,15 +79,20 @@ ob_start();
                             <div class="invalid-feedback d-block" id="dateErr"></div>
                         </div>
 
-                        <!-- Drag & drop zone -->
+                        <!-- Bill document: PDF upload or camera photo -->
                         <div class="mb-4">
-                            <label class="form-label fw-semibold"><?= e(t('upload.pdf_file')) ?> <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold"><?= e(t('upload.document_file')) ?> <span class="text-danger">*</span></label>
+                            <p class="form-text mt-0 mb-2"><?= e(t('upload.mode_help')) ?></p>
                             <div class="upload-dropzone" id="dropZone">
-                                <div class="dz-inner">
+                                <div class="dz-inner" id="dzInner">
                                     <i class="bi bi-cloud-arrow-up-fill display-4 text-muted"></i>
                                     <p class="mb-1 fw-semibold"><?= e(t('upload.drag_drop')) ?></p>
                                     <p class="mb-2 text-muted small"><?= e(t('upload.or')) ?></p>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" id="browseBtn"><i class="bi bi-folder2-open me-1"></i><?= e(t('upload.browse')) ?></button>
+                                    <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="browseBtn"><i class="bi bi-folder2-open me-1"></i><?= e(t('upload.browse')) ?></button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="takePhotoBtn"><i class="bi bi-camera me-1"></i><?= e(t('upload.take_photo')) ?></button>
+                                        <button type="button" class="btn btn-sm btn-light" id="galleryBtn"><i class="bi bi-images me-1"></i><?= e(t('upload.choose_gallery')) ?></button>
+                                    </div>
                                     <p class="mb-0 mt-2 text-muted small"><?= e(t('upload.pdf_only_max', ['max' => $maxSizeMb])) ?></p>
                                 </div>
                                 <input type="file" id="fileInput" name="pdf_file" accept=".pdf,application/pdf" class="d-none">
@@ -101,7 +106,25 @@ ob_start();
                                          <button type="button" class="btn btn-xs btn-light" id="fileRemoveBtn" title="<?= e(t('common.remove_file')) ?>" aria-label="<?= e(t('common.remove_file')) ?>"><i class="bi bi-x-lg"></i></button>
                                     </div>
                                 </div>
+                                <div class="photo-preview d-none" id="photoPreview">
+                                    <div class="photo-preview-media">
+                                        <img id="photoPreviewImg" alt="<?= e(t('upload.photo_preview')) ?>">
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap p-3 border-top">
+                                        <div class="small">
+                                            <div class="fw-semibold text-success"><i class="bi bi-camera-fill me-1"></i><?= e(t('upload.photo_note')) ?></div>
+                                            <div class="text-muted" id="photoPreviewMeta"></div>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <button type="button" class="btn btn-xs btn-light" id="photoGalleryBtn"><i class="bi bi-images me-1"></i><?= e(t('upload.choose_gallery')) ?></button>
+                                            <button type="button" class="btn btn-xs btn-outline-primary" id="photoRetakeBtn"><i class="bi bi-camera me-1"></i><?= e(t('upload.retake')) ?></button>
+                                            <button type="button" class="btn btn-xs btn-light" id="photoRemoveBtn" title="<?= e(t('upload.remove_photo')) ?>" aria-label="<?= e(t('upload.remove_photo')) ?>"><i class="bi bi-x-lg"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
+                            <input type="file" id="photoCaptureInput" accept="image/*" capture="environment" class="d-none">
+                            <input type="file" id="photoGalleryInput" accept="image/*" class="d-none">
                             <div class="invalid-feedback d-block" id="fileErr"></div>
                         </div>
 
@@ -171,6 +194,33 @@ ob_start();
             <div class="card-body">
                 <p class="mb-1 fw-semibold"><?= e($branch['branch_name']) ?></p>
                 <p class="text-muted small mb-0"><?= e($branch['branch_code']) ?> · <?= e(t('upload.branch_note')) ?></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="cameraModal" tabindex="-1" aria-labelledby="cameraModalTitle" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cameraModalTitle"><i class="bi bi-camera me-2"></i><?= e(t('upload.camera_title')) ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= e(t('upload.camera_close')) ?>"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="camera-stage">
+                    <video id="cameraVideo" playsinline autoplay muted></video>
+                    <div class="camera-status" id="cameraStatus" role="status"><?= e(t('upload.camera_help')) ?></div>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-between flex-wrap gap-2">
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-light" id="cameraSwitchBtn"><i class="bi bi-arrow-repeat me-1"></i><?= e(t('upload.camera_switch')) ?></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="cameraFallbackBtn"><i class="bi bi-phone me-1"></i><?= e(t('upload.camera_fallback')) ?></button>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal"><?= e(t('upload.camera_close')) ?></button>
+                    <button type="button" class="btn btn-primary" id="cameraCaptureBtn" disabled><i class="bi bi-camera me-1"></i><?= e(t('upload.camera_capture')) ?></button>
+                </div>
             </div>
         </div>
     </div>

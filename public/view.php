@@ -90,6 +90,7 @@ ob_start();
                     <dt class="col-6 text-muted"><?= e(t('col.bill_id')) ?></dt><dd class="col-6 text-end mb-2">#<?= $bill['id'] ?></dd>
                     <dt class="col-6 text-muted"><?= e(t('common.branch')) ?></dt><dd class="col-6 text-end mb-2"><?= e($branch['branch_name'] ?? '—') ?></dd>
                     <dt class="col-6 text-muted"><?= e(t('col.payment_type')) ?></dt><dd class="col-6 text-end mb-2"><?= payment_type_badge($bill['payment_type']) ?></dd>
+                    <dt class="col-6 text-muted"><?= e(t('view.source')) ?></dt><dd class="col-6 text-end mb-2"><?= e(t(($bill['upload_source'] ?? 'pdf') === 'photo' ? 'view.source_photo' : 'view.source_pdf')) ?></dd>
                     <dt class="col-6 text-muted"><?= e(t('col.business_date')) ?></dt><dd class="col-6 text-end mb-2"><?= e(format_date($bill['business_date'])) ?></dd>
                     <dt class="col-6 text-muted"><?= e(t('col.uploaded_by')) ?></dt><dd class="col-6 text-end mb-2"><?= e($uploader['name'] ?? '—') ?></dd>
                     <dt class="col-6 text-muted"><?= e(t('col.uploaded_at')) ?></dt><dd class="col-6 text-end mb-2"><?= e(format_datetime($bill['uploaded_at'])) ?></dd>

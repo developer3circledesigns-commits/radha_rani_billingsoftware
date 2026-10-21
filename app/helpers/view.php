@@ -106,3 +106,16 @@ function bill_icon(): string
 {
     return '<i class="bi bi-file-earmark-pdf-fill text-danger fs-3"></i>';
 }
+
+/**
+ * A bill is always a PDF on disk, but the owner still needs to see which ones
+ * arrived as a photo. The camera icon is decorative and the tooltip carries
+ * the meaning; the accessible text is the filename beside it.
+ */
+function bill_source_icon(array $bill, string $size = 'fs-5'): string
+{
+    if (($bill['upload_source'] ?? 'pdf') === 'photo') {
+        return '<i class="bi bi-camera-fill text-primary ' . e($size) . '" title="' . e(t('common.photo_bill')) . '"></i>';
+    }
+    return '<i class="bi bi-file-earmark-pdf-fill text-danger ' . e($size) . '"></i>';
+}

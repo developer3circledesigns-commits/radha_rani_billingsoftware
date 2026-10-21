@@ -230,7 +230,7 @@ INFO: Agent is now online. Process unlocked, continuing...
 INFO: (6012): Real-time file integrity monitoring started.
 ```
 
-A 200 on `http://localhost:8091/login.php` plus two deliberately failed logins
+A 200 on `http://localhost:8092/login.php` plus two deliberately failed logins
 should produce two well-formed JSON lines in `security.log`. That proves the
 bind mount works and the Agent reads what the container writes.
 

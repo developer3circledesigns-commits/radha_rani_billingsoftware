@@ -184,7 +184,7 @@ ob_start();
                             <tr>
                                 <td class="ps-3">
                                     <div class="d-flex align-items-center gap-2">
-                                        <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
+                                        <?= bill_source_icon($u, '') ?>
                                         <span class="text-truncate d-inline-block" style="max-width:200px" title="<?= e($u['original_filename']) ?>"><?= e($u['original_filename']) ?></span>
                                     </div>
                                 </td>

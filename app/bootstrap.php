@@ -41,6 +41,7 @@ require_once __DIR__ . '/helpers/Database.php';
 require_once __DIR__ . '/helpers/functions.php';
 require_once __DIR__ . '/helpers/view.php';
 require_once __DIR__ . '/helpers/BillStorage.php';
+require_once __DIR__ . '/helpers/BillPhotoPdf.php';
 require_once __DIR__ . '/helpers/SecurityLogger.php';
 require_once __DIR__ . '/middleware/auth.php';
 require_once __DIR__ . '/models/Branch.php';
@@ -51,6 +52,7 @@ require_once __DIR__ . '/models/Setting.php';
 require_once __DIR__ . '/models/Notification.php';
 require_once __DIR__ . '/models/DailyCompliance.php';
 require_once __DIR__ . '/validators/PdfValidator.php';
+require_once __DIR__ . '/validators/PhotoValidator.php';
 
 // Shared hosts can drop empty folders during deployment, which would make
 // the error handler below write nowhere. One stat call per request is cheap.

@@ -91,7 +91,7 @@ ob_start();
                     <tr>
                         <td class="ps-3">
                             <div class="d-flex align-items-center gap-2">
-                                <i class="bi bi-file-earmark-pdf-fill text-danger fs-5"></i>
+                                <?= bill_source_icon($bill) ?>
                                 <div class="text-truncate" style="max-width:260px" title="<?= e($bill['original_filename']) ?>">
                                     <?= e($bill['original_filename']) ?>
                                     <?php if (!empty($bill['description'])) : ?>

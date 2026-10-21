@@ -17,15 +17,16 @@ cd docker
 docker compose up -d --build
 ```
 
-Open **http://localhost:8091** and sign in.
+Open **http://localhost:8092** and sign in.
 
 | Service | Host port | Notes |
 |---------|-----------|-------|
-| Web (nginx → php-fpm) | `8091` | docroot is `public/` |
-| MySQL 8 | `3308` | db `radha_rani`, user `radha` |
+| Web (nginx → php-fpm) | `8092` | docroot is `public/` |
+| MySQL 8 | `127.0.0.1:3308` | db `radha_rani`, user `radha`; loopback only |
 
-> The compose uses host port `8091` to avoid clashes with XAMPP's Apache on `8080`.
-> Change `ports` in `docker/docker-compose.yml` if needed.
+> The compose uses host port `8092` to avoid clashes with XAMPP's Apache on `8080`
+> and other local stacks. If it is taken too, change `ports` in
+> `docker/docker-compose.yml` and `APP_URL` to match.
 
 #### `no configuration file provided`
 
@@ -61,11 +62,13 @@ picks it up automatically - no extra flags.
 
 ### Initial owner account
 
-| Role | Email |
-|------|-------|
-| Owner | `owner@radharani.local` |
+| Role | Username | Email | Password |
+|------|----------|-------|----------|
+| Owner | `owner` | `owner@radharani.local` | `Owner@123` |
 
-The owner password is set via the seed; change it from **Profile** after first login. Branches and branch admins are created from the owner dashboard.
+Either the username or the email works in the **Login** field. The password is the
+public seed value from `database/init.sql` — change it from **Profile** immediately
+after the first login. Branches and branch admins are created from the owner dashboard.
 
 ### Resetting the database
 
@@ -76,6 +79,18 @@ The schema + seed data load automatically on first `docker compose up` (MySQL in
 docker compose down -v        # -v also deletes the db volume
 docker compose up -d          # re-runs init.sql
 ```
+
+Run these from `docker/` (or pass `-f docker/docker-compose.yml`).
+
+#### Docker troubleshooting
+
+| Symptom | Cause / fix |
+| --- | --- |
+| `port is already allocated` | Another stack owns `8092` (or `3308`). Stop it, or change both the published port and `APP_URL` in `docker/docker-compose.yml`. |
+| Changed `DB_PASSWORD` but the app still says access denied | MySQL applies `MYSQL_*` only when the data volume is first created. Either reset with `docker compose down -v` or update the password inside MySQL. |
+| Page returns 502 | php-fpm is still starting. `docker compose ps` shows `radha_rani_php` as `healthy` once port 9000 accepts connections; then reload. |
+| New tables/columns are missing | The volume predates a schema change. Run `docker exec radha_rani_php php tools/migrate.php`, or reset the volume as above. |
+| Need details on a 500 | `docker exec radha_rani_php php tools/deploy-check.php` and `docker compose logs php nginx db`. |
 
 ---
 
@@ -108,6 +123,12 @@ docker compose up -d          # re-runs init.sql
 - **Secure PDF uploads** — drag & drop (AJAX with progress), validated by extension +
   MIME (`finfo`) + `%PDF-` signature + size; stored outside the web root under
   `storage/uploads/branches/{CODE}/{cash|card}/{Y}/{m}/`.
+- **Camera photo uploads** — a branch admin can photograph a bill instead of scanning
+  it. The browser normalises the capture to JPEG (EXIF orientation applied, long edge
+  capped at 2400 px), then the server embeds it in a real single-page PDF with no GD or
+  ImageMagick dependency. Photos use the same storage, viewer, audit and compliance path
+  as PDFs, and are marked with a camera badge in bill lists. The live camera needs HTTPS
+  (or `localhost`); otherwise the page falls back to the device camera input.
 - **View / download** — authorized inline `view.php`/`view_pdf.php` and `download.php`
   (byte-range aware), branch-scoped.
 - **Owner dashboards** — KPI cards, per-branch daily upload status (Uploaded / Partial /

@@ -176,7 +176,7 @@ ob_start();
                         <td class="ps-3 text-muted small">#<?= $bill['id'] ?></td>
                         <td>
                             <div class="d-flex align-items-center gap-2">
-                                <i class="bi bi-file-earmark-pdf-fill text-secondary fs-5"></i>
+                                <?= bill_source_icon($bill) ?>
                                 <span class="text-truncate" style="max-width:220px" title="<?= e($bill['original_filename']) ?>"><?= e($bill['original_filename']) ?></span>
                             </div>
                         </td>
