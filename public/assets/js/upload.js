@@ -25,6 +25,17 @@
     const photoCaptureInput = document.getElementById('photoCaptureInput');
     const photoGalleryInput = document.getElementById('photoGalleryInput');
 
+    const cameraModalEl   = document.getElementById('cameraModal');
+    const cameraVideo     = document.getElementById('cameraVideo');
+    const cameraStatus    = document.getElementById('cameraStatus');
+    const cameraStatusText = document.getElementById('cameraStatusText');
+    const cameraSpinner   = document.getElementById('cameraSpinner');
+    const cameraRetryBtn  = document.getElementById('cameraRetryBtn');
+    const cameraFallbackBtn = document.getElementById('cameraFallbackBtn');
+    const cameraCaptureBtn = document.getElementById('cameraCaptureBtn');
+    const cameraSwitchBtn = document.getElementById('cameraSwitchBtn');
+    const cameraHint      = document.getElementById('cameraHint');
+
     const form           = document.getElementById('uploadForm');
     const uploadBtn      = document.getElementById('uploadBtn');
     const formWrap       = document.getElementById('uploadFormWrap');
@@ -60,6 +71,13 @@
     let photoProcessing = false;
     let busy = false;
     let autoRetryCount = 0;
+
+    let cameraModal = null;
+    let cameraStream = null;
+    let cameraDevices = [];
+    let cameraActiveDeviceId = '';
+    let cameraToken = 0;
+    let cameraBusy = false;
 
     // Use the exact effective limit the server computed (PHP upload/post limits,
     // database packet size and the configured setting all included). The MB
@@ -186,9 +204,12 @@
     }
 
     // ---------- camera ----------
-    // The device camera is opened by the native capture input. Do not render a
-    // getUserMedia preview inside the page: on phones that is a second camera
-    // UI with its own permissions, and it is not the camera app the user knows.
+    // "Take Photo" opens the live device camera through getUserMedia, so a
+    // laptop with a built-in webcam shows the camera instead of a file picker.
+    // Phones and tablets get the same live preview with a switch button when
+    // they have more than one camera. If the live camera cannot start (blocked
+    // permission, insecure origin, camera busy or no camera at all) the native
+    // capture input is offered as a fallback, which keeps the old behaviour.
     if (takePhotoBtn) {
         takePhotoBtn.addEventListener('click', openDeviceCamera);
     }
@@ -219,13 +240,220 @@
             photoCaptureInput.value = '';
         });
     }
+    if (cameraModalEl) {
+        cameraModalEl.addEventListener('hidden.bs.modal', stopCamera);
+    }
+    if (cameraCaptureBtn) {
+        cameraCaptureBtn.addEventListener('click', captureCameraPhoto);
+    }
+    if (cameraRetryBtn) {
+        cameraRetryBtn.addEventListener('click', function () { startCamera(cameraActiveDeviceId); });
+    }
+    if (cameraFallbackBtn) {
+        cameraFallbackBtn.addEventListener('click', function () {
+            closeCamera();
+            openNativeCapture();
+        });
+    }
+    if (cameraSwitchBtn) {
+        cameraSwitchBtn.addEventListener('click', function () {
+            if (cameraBusy || cameraDevices.length < 2) return;
+            let index = 0;
+            for (let i = 0; i < cameraDevices.length; i++) {
+                if (cameraDevices[i].deviceId === cameraActiveDeviceId) { index = i; break; }
+            }
+            const next = cameraDevices[(index + 1) % cameraDevices.length];
+            if (next) startCamera(next.deviceId);
+        });
+    }
+
+    function cameraSupported() {
+        return !!(navigator.mediaDevices &&
+            typeof navigator.mediaDevices.getUserMedia === 'function');
+    }
 
     function openDeviceCamera() {
-        if (photoCaptureInput) {
-            photoCaptureInput.click();
+        if (!cameraSupported() || !cameraModalEl || !cameraVideo ||
+            !window.bootstrap || typeof window.bootstrap.Modal !== 'function') {
+            if (window.isSecureContext === false) {
+                toast(txt('js.camera_insecure', 'The camera needs a secure connection (HTTPS or localhost). Opening the file picker instead.'), 'warning');
+            }
+            openNativeCapture();
+            return;
+        }
+
+        if (!cameraModal) cameraModal = new window.bootstrap.Modal(cameraModalEl);
+        showCameraStatus(txt('js.camera_starting', 'Starting camera…'), { spinner: true });
+        if (cameraCaptureBtn) cameraCaptureBtn.disabled = true;
+        cameraModal.show();
+        startCamera('');
+    }
+
+    function openNativeCapture() {
+        if (!photoCaptureInput) return;
+        photoCaptureInput.value = '';
+        photoCaptureInput.click();
+    }
+
+    async function startCamera(deviceId) {
+        const token = ++cameraToken;
+        releaseCameraStream();
+        cameraBusy = true;
+        if (cameraCaptureBtn) cameraCaptureBtn.disabled = true;
+        if (cameraHint) cameraHint.classList.add('d-none');
+        showCameraStatus(txt('js.camera_starting', 'Starting camera…'), { spinner: true });
+
+        const videoConstraints = deviceId
+            ? { deviceId: { exact: deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+            : { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } };
+
+        try {
+            let stream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: videoConstraints });
+            } catch (err) {
+                const retryable = err && [
+                    'OverconstrainedError', 'ConstraintNotSatisfiedError',
+                    'NotFoundError', 'DevicesNotFoundError', 'TypeError'
+                ].indexOf(err.name) !== -1;
+                if (!retryable) throw err;
+                stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+            }
+
+            if (token !== cameraToken) {
+                stream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) {} });
+                return;
+            }
+
+            cameraStream = stream;
+            cameraVideo.srcObject = stream;
+            try { await cameraVideo.play(); } catch (e) {}
+
+            const track = stream.getVideoTracks()[0];
+            const settings = track && typeof track.getSettings === 'function' ? track.getSettings() : {};
+            cameraActiveDeviceId = settings.deviceId || '';
+            await refreshCameraDevices();
+
+            cameraBusy = false;
+            if (cameraCaptureBtn) cameraCaptureBtn.disabled = false;
+            hideCameraStatus();
+            if (cameraHint) cameraHint.classList.remove('d-none');
+        } catch (err) {
+            if (token !== cameraToken) return;
+            cameraBusy = false;
+            handleCameraError(err);
         }
     }
 
+    async function refreshCameraDevices() {
+        cameraDevices = [];
+        if (!navigator.mediaDevices || typeof navigator.mediaDevices.enumerateDevices !== 'function') return;
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            cameraDevices = devices.filter(function (d) {
+                return d.kind === 'videoinput' && d.deviceId;
+            });
+        } catch (e) {
+            cameraDevices = [];
+        }
+        if (cameraSwitchBtn) {
+            cameraSwitchBtn.classList.toggle('d-none', cameraDevices.length < 2);
+        }
+    }
+
+    function handleCameraError(err) {
+        const name = err && err.name ? err.name : '';
+        let message;
+        let canRetry = true;
+
+        if (name === 'NotAllowedError' || name === 'SecurityError' || name === 'PermissionDeniedError') {
+            message = txt('js.camera_denied', 'Camera access was blocked. Allow camera permission for this site, then try again — or choose a file instead.');
+        } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'OverconstrainedError') {
+            message = txt('js.camera_missing', 'No camera was found on this device. Choose a file instead.');
+            canRetry = false;
+        } else if (name === 'NotReadableError' || name === 'TrackStartError' || name === 'AbortError') {
+            message = txt('js.camera_busy', 'The camera is in use by another app. Close it and try again — or choose a file instead.');
+        } else {
+            message = txt('js.camera_error', 'The camera could not be opened. Choose a file instead.');
+        }
+
+        showCameraStatus(message, { spinner: false, retry: canRetry, fallback: true });
+        if (cameraCaptureBtn) cameraCaptureBtn.disabled = true;
+        if (cameraHint) cameraHint.classList.add('d-none');
+    }
+
+    function captureCameraPhoto() {
+        if (cameraBusy || !cameraStream || !cameraVideo) return;
+
+        const w = cameraVideo.videoWidth || 0;
+        const h = cameraVideo.videoHeight || 0;
+        if (!w || !h) {
+            showCameraStatus(txt('js.camera_capture_failed', 'The photo could not be captured. Please try again.'), { spinner: false, retry: true, fallback: true });
+            return;
+        }
+
+        const scale = Math.min(1, MAX_PHOTO_EDGE / Math.max(w, h));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(w * scale));
+        canvas.height = Math.max(1, Math.round(h * scale));
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
+
+        if (cameraCaptureBtn) cameraCaptureBtn.disabled = true;
+
+        canvas.toBlob(function (blob) {
+            if (!blob) {
+                if (cameraCaptureBtn) cameraCaptureBtn.disabled = false;
+                showCameraStatus(txt('js.camera_capture_failed', 'The photo could not be captured. Please try again.'), { spinner: false, retry: true, fallback: true });
+                return;
+            }
+            const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
+            const file = new File([blob], 'camera_' + stamp + '.jpg', { type: 'image/jpeg' });
+            closeCamera();
+            acceptPhotoFile(file);
+        }, 'image/jpeg', 0.92);
+    }
+
+    function closeCamera() {
+        stopCamera();
+        if (cameraModal) cameraModal.hide();
+    }
+
+    function stopCamera() {
+        cameraToken++;
+        cameraBusy = false;
+        releaseCameraStream();
+        if (cameraCaptureBtn) cameraCaptureBtn.disabled = true;
+        if (cameraHint) cameraHint.classList.add('d-none');
+    }
+
+    function releaseCameraStream() {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) {} });
+            cameraStream = null;
+        }
+        if (cameraVideo) {
+            try { cameraVideo.pause(); } catch (e) {}
+            cameraVideo.srcObject = null;
+        }
+    }
+
+    function showCameraStatus(message, opts) {
+        if (!cameraStatus) return;
+        opts = opts || {};
+        cameraStatus.classList.remove('d-none');
+        if (cameraStatusText) cameraStatusText.textContent = message;
+        if (cameraSpinner) cameraSpinner.classList.toggle('d-none', !opts.spinner);
+        if (cameraRetryBtn) cameraRetryBtn.classList.toggle('d-none', !opts.retry);
+        if (cameraFallbackBtn) cameraFallbackBtn.classList.toggle('d-none', !opts.fallback);
+        if (cameraHint) cameraHint.classList.add('d-none');
+    }
+
+    function hideCameraStatus() {
+        if (cameraStatus) cameraStatus.classList.add('d-none');
+    }
 
     // ---------- photo normalisation ----------
     async function acceptPhotoFile(file) {

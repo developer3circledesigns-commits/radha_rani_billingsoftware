@@ -619,6 +619,13 @@ return [
         'upload.photo_note'       => 'This photo will be saved as a PDF bill.',
         'upload.retake'           => 'Retake',
         'upload.remove_photo'     => 'Remove Photo',
+        'upload.camera_title'     => 'Take Photo',
+        'upload.camera_starting'  => 'Starting camera…',
+        'upload.camera_switch'    => 'Switch Camera',
+        'upload.camera_capture'   => 'Capture Photo',
+        'upload.camera_hint'      => 'Point the camera at the bill, then press Capture Photo.',
+        'upload.camera_retry'     => 'Try Again',
+        'upload.camera_use_file'  => 'Choose a File Instead',
 
         // ==============================================================
         // Form partials
@@ -771,6 +778,13 @@ return [
         'js.photo_processing'  => 'Preparing photo…',
         'js.photo_ready'       => 'Photo ready — it will be saved as a PDF bill.',
         'js.photo_failed'      => 'The photo could not be read. Please try another one.',
+        'js.camera_starting'   => 'Starting camera…',
+        'js.camera_denied'     => 'Camera access was blocked. Allow camera permission for this site, then try again — or choose a file instead.',
+        'js.camera_missing'    => 'No camera was found on this device. Choose a file instead.',
+        'js.camera_busy'       => 'The camera is in use by another app. Close it and try again — or choose a file instead.',
+        'js.camera_error'      => 'The camera could not be opened. Choose a file instead.',
+        'js.camera_insecure'   => 'The camera needs a secure connection (HTTPS or localhost). Opening the file picker instead.',
+        'js.camera_capture_failed' => 'The photo could not be captured. Please try again.',
         'js.upload_photo_ok'   => 'Photo saved as a PDF bill.',
         'js.server_too_large'  => 'The file is too large for the server. Please use a smaller photo.',
         'js.retrying_smaller'  => 'Retrying with a smaller copy…',

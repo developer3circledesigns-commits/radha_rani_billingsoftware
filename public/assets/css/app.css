@@ -489,6 +489,51 @@ body.app-body {
     object-fit: contain;
 }
 
+/* ---------- Live camera modal ---------- */
+.camera-stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 260px;
+    background: #111;
+    overflow: hidden;
+}
+.camera-video {
+    display: block;
+    width: 100%;
+    max-height: 65vh;
+    background: #000;
+    object-fit: contain;
+}
+.camera-status {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(12, 12, 14, 0.78);
+    color: #fff;
+    text-align: center;
+}
+.camera-status-inner { max-width: 420px; }
+.camera-hint {
+    position: absolute;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(12, 12, 14, 0.68);
+    color: #fff;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+    max-width: calc(100% - 32px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* ---------- PDF viewer ---------- */
 .pdf-viewer-frame iframe {
     width: 100%;

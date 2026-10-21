@@ -631,6 +631,13 @@ return [
         'upload.photo_note'       => 'Dieses Foto wird als PDF-Beleg gespeichert.',
         'upload.retake'           => 'Neu aufnehmen',
         'upload.remove_photo'     => 'Foto entfernen',
+        'upload.camera_title'     => 'Foto aufnehmen',
+        'upload.camera_starting'  => 'Kamera wird gestartet…',
+        'upload.camera_switch'    => 'Kamera wechseln',
+        'upload.camera_capture'   => 'Foto aufnehmen',
+        'upload.camera_hint'      => 'Richten Sie die Kamera auf den Beleg und tippen Sie auf „Foto aufnehmen“.',
+        'upload.camera_retry'     => 'Erneut versuchen',
+        'upload.camera_use_file'  => 'Datei auswählen',
 
         // ==============================================================
         // Formular-Partials
@@ -783,6 +790,13 @@ return [
         'js.photo_processing'  => 'Foto wird vorbereitet…',
         'js.photo_ready'       => 'Foto bereit – es wird als PDF-Beleg gespeichert.',
         'js.photo_failed'      => 'Das Foto konnte nicht gelesen werden. Bitte versuchen Sie ein anderes.',
+        'js.camera_starting'   => 'Kamera wird gestartet…',
+        'js.camera_denied'     => 'Der Kamerazugriff wurde blockiert. Erlauben Sie den Kamerazugriff für diese Website und versuchen Sie es erneut – oder wählen Sie eine Datei aus.',
+        'js.camera_missing'    => 'Auf diesem Gerät wurde keine Kamera gefunden. Wählen Sie stattdessen eine Datei aus.',
+        'js.camera_busy'       => 'Die Kamera wird von einer anderen App verwendet. Schließen Sie sie und versuchen Sie es erneut – oder wählen Sie eine Datei aus.',
+        'js.camera_error'      => 'Die Kamera konnte nicht geöffnet werden. Wählen Sie stattdessen eine Datei aus.',
+        'js.camera_insecure'   => 'Die Kamera benötigt eine sichere Verbindung (HTTPS oder localhost). Die Dateiauswahl wird stattdessen geöffnet.',
+        'js.camera_capture_failed' => 'Das Foto konnte nicht aufgenommen werden. Bitte erneut versuchen.',
         'js.upload_photo_ok'   => 'Foto als PDF-Beleg gespeichert.',
         'js.server_too_large'  => 'Die Datei ist zu groß für den Server. Bitte verwenden Sie ein kleineres Foto.',
         'js.retrying_smaller'  => 'Erneuter Versuch mit einer kleineren Kopie…',

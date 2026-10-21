@@ -195,6 +195,40 @@ ob_start();
     </div>
 </div>
 
+<!-- Live camera capture: opens the device camera (laptop webcam, phone front or
+     back camera) instead of a file picker when the browser supports it. -->
+<div class="modal fade" id="cameraModal" tabindex="-1" aria-labelledby="cameraModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cameraModalTitle"><i class="bi bi-camera-fill me-2"></i><?= e(t('upload.camera_title')) ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= e(t('common.close')) ?>"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="camera-stage">
+                    <video id="cameraVideo" class="camera-video" autoplay playsinline muted></video>
+                    <div class="camera-status" id="cameraStatus" role="status" aria-live="polite">
+                        <div class="camera-status-inner">
+                            <div class="spinner-border mb-3" id="cameraSpinner" role="status" aria-hidden="true"></div>
+                            <p class="mb-2" id="cameraStatusText"><?= e(t('upload.camera_starting')) ?></p>
+                            <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                <button type="button" class="btn btn-sm btn-light d-none" id="cameraRetryBtn"><?= e(t('upload.camera_retry')) ?></button>
+                                <button type="button" class="btn btn-sm btn-outline-light d-none" id="cameraFallbackBtn"><?= e(t('upload.camera_use_file')) ?></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="camera-hint d-none" id="cameraHint"><?= e(t('upload.camera_hint')) ?></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary me-auto d-none" id="cameraSwitchBtn"><i class="bi bi-arrow-repeat me-1"></i><?= e(t('upload.camera_switch')) ?></button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal"><?= e(t('common.cancel')) ?></button>
+                <button type="button" class="btn btn-primary" id="cameraCaptureBtn" disabled><i class="bi bi-camera me-1"></i><?= e(t('upload.camera_capture')) ?></button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php
 $bodyContent = ob_get_clean();
 require APP_PATH . '/views/layouts/header.php';
