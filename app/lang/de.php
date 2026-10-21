@@ -631,12 +631,6 @@ return [
         'upload.photo_note'       => 'Dieses Foto wird als PDF-Beleg gespeichert.',
         'upload.retake'           => 'Neu aufnehmen',
         'upload.remove_photo'     => 'Foto entfernen',
-        'upload.camera_title'     => 'Foto aufnehmen',
-        'upload.camera_help'      => 'Richten Sie die Kamera auf den ganzen Beleg, flach und gut beleuchtet.',
-        'upload.camera_capture'   => 'Aufnehmen',
-        'upload.camera_switch'    => 'Kamera wechseln',
-        'upload.camera_close'     => 'Schließen',
-        'upload.camera_fallback'  => 'Gerätekamera verwenden',
 
         // ==============================================================
         // Formular-Partials
@@ -790,15 +784,6 @@ return [
         'js.photo_ready'       => 'Foto bereit – es wird als PDF-Beleg gespeichert.',
         'js.photo_failed'      => 'Das Foto konnte nicht gelesen werden. Bitte versuchen Sie ein anderes.',
         'js.upload_photo_ok'   => 'Foto als PDF-Beleg gespeichert.',
-        'js.camera_starting'   => 'Kamera wird gestartet…',
-        'js.camera_unavailable'=> 'Die Kamera ist in diesem Browser nicht verfügbar.',
-        'js.camera_denied'     => 'Der Kamerazugriff wurde verweigert. Erlauben Sie den Zugriff oder verwenden Sie die Gerätekamera.',
-        'js.camera_not_found'  => 'Auf diesem Gerät wurde keine Kamera gefunden.',
-        'js.camera_busy'       => 'Die Kamera wird von einer anderen Anwendung verwendet.',
-        'js.camera_insecure'   => 'Die Live-Kamera benötigt HTTPS oder localhost. Verwenden Sie stattdessen die Gerätekamera.',
-        'js.camera_capture_failed' => 'Das Foto konnte nicht aufgenommen werden. Bitte erneut versuchen.',
-        'js.camera_switch'     => 'Kamera wechseln',
-        'js.camera_capture'    => 'Aufnehmen',
         'js.server_too_large'  => 'Die Datei ist zu groß für den Server. Bitte verwenden Sie ein kleineres Foto.',
         'js.retrying_smaller'  => 'Erneuter Versuch mit einer kleineren Kopie…',
         'js.timeout_error'     => 'Der Upload hat zu lange gedauert. Prüfen Sie die Verbindung und versuchen Sie es erneut.',

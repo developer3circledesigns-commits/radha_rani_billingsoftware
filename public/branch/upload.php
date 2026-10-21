@@ -195,33 +195,6 @@ ob_start();
     </div>
 </div>
 
-<div class="modal fade" id="cameraModal" tabindex="-1" aria-labelledby="cameraModalTitle" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="cameraModalTitle"><i class="bi bi-camera me-2"></i><?= e(t('upload.camera_title')) ?></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= e(t('upload.camera_close')) ?>"></button>
-            </div>
-            <div class="modal-body p-0">
-                <div class="camera-stage">
-                    <video id="cameraVideo" playsinline autoplay muted></video>
-                    <div class="camera-status" id="cameraStatus" role="status"><?= e(t('upload.camera_help')) ?></div>
-                </div>
-            </div>
-            <div class="modal-footer justify-content-between flex-wrap gap-2">
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-light" id="cameraSwitchBtn"><i class="bi bi-arrow-repeat me-1"></i><?= e(t('upload.camera_switch')) ?></button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="cameraFallbackBtn"><i class="bi bi-phone me-1"></i><?= e(t('upload.camera_fallback')) ?></button>
-                </div>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal"><?= e(t('upload.camera_close')) ?></button>
-                    <button type="button" class="btn btn-primary" id="cameraCaptureBtn" disabled><i class="bi bi-camera me-1"></i><?= e(t('upload.camera_capture')) ?></button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <?php
 $bodyContent = ob_get_clean();
 require APP_PATH . '/views/layouts/header.php';

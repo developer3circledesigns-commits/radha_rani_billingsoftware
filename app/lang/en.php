@@ -619,12 +619,6 @@ return [
         'upload.photo_note'       => 'This photo will be saved as a PDF bill.',
         'upload.retake'           => 'Retake',
         'upload.remove_photo'     => 'Remove Photo',
-        'upload.camera_title'     => 'Take a Photo',
-        'upload.camera_help'      => 'Fill the frame with the bill and keep it flat and well lit.',
-        'upload.camera_capture'   => 'Capture',
-        'upload.camera_switch'    => 'Switch Camera',
-        'upload.camera_close'     => 'Close',
-        'upload.camera_fallback'  => 'Use Device Camera',
 
         // ==============================================================
         // Form partials
@@ -778,15 +772,6 @@ return [
         'js.photo_ready'       => 'Photo ready — it will be saved as a PDF bill.',
         'js.photo_failed'      => 'The photo could not be read. Please try another one.',
         'js.upload_photo_ok'   => 'Photo saved as a PDF bill.',
-        'js.camera_starting'   => 'Starting camera…',
-        'js.camera_unavailable'=> 'Camera is not available in this browser.',
-        'js.camera_denied'     => 'Camera permission was denied. Allow access or use the device camera.',
-        'js.camera_not_found'  => 'No camera was found on this device.',
-        'js.camera_busy'       => 'The camera is busy in another application.',
-        'js.camera_insecure'   => 'The live camera needs HTTPS or localhost. Use the device camera instead.',
-        'js.camera_capture_failed' => 'Could not capture the photo. Please try again.',
-        'js.camera_switch'     => 'Switch Camera',
-        'js.camera_capture'    => 'Capture',
         'js.server_too_large'  => 'The file is too large for the server. Please use a smaller photo.',
         'js.retrying_smaller'  => 'Retrying with a smaller copy…',
         'js.timeout_error'     => 'The upload timed out. Please check your connection and retry.',

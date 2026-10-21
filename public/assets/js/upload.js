@@ -25,13 +25,6 @@
     const photoCaptureInput = document.getElementById('photoCaptureInput');
     const photoGalleryInput = document.getElementById('photoGalleryInput');
 
-    const cameraModalEl   = document.getElementById('cameraModal');
-    const cameraVideo     = document.getElementById('cameraVideo');
-    const cameraStatus    = document.getElementById('cameraStatus');
-    const cameraCaptureBtn  = document.getElementById('cameraCaptureBtn');
-    const cameraSwitchBtn   = document.getElementById('cameraSwitchBtn');
-    const cameraFallbackBtn = document.getElementById('cameraFallbackBtn');
-
     const form           = document.getElementById('uploadForm');
     const uploadBtn      = document.getElementById('uploadBtn');
     const formWrap       = document.getElementById('uploadFormWrap');
@@ -193,21 +186,17 @@
     }
 
     // ---------- camera ----------
-    let cameraModal = null;
-    let cameraStream = null;
-    let cameraFacing = 'environment';
-    // Bumped whenever the stream is stopped, so a getUserMedia() promise that
-    // resolves after the modal was closed cannot switch the camera back on.
-    let cameraGeneration = 0;
-
+    // The device camera is opened by the native capture input. Do not render a
+    // getUserMedia preview inside the page: on phones that is a second camera
+    // UI with its own permissions, and it is not the camera app the user knows.
     if (takePhotoBtn) {
-        takePhotoBtn.addEventListener('click', openCamera);
+        takePhotoBtn.addEventListener('click', openDeviceCamera);
+    }
+    if (photoRetakeBtn) {
+        photoRetakeBtn.addEventListener('click', openDeviceCamera);
     }
     if (galleryBtn) {
         galleryBtn.addEventListener('click', function () { photoGalleryInput.click(); });
-    }
-    if (photoRetakeBtn) {
-        photoRetakeBtn.addEventListener('click', openCamera);
     }
     if (photoRemoveBtn) {
         photoRemoveBtn.addEventListener('click', function () {
@@ -231,153 +220,12 @@
         });
     }
 
-    if (cameraModalEl && window.bootstrap && window.bootstrap.Modal) {
-        cameraModal = new window.bootstrap.Modal(cameraModalEl);
-        cameraModalEl.addEventListener('hide.bs.modal', function () {
-            cameraGeneration++;
-        });
-        cameraModalEl.addEventListener('hidden.bs.modal', stopCamera);
-    }
-
-    function openCamera() {
-        if (!window.isSecureContext ||
-            !navigator.mediaDevices ||
-            typeof navigator.mediaDevices.getUserMedia !== 'function') {
-            toast(
-                txt(
-                    window.isSecureContext ? 'js.camera_unavailable' : 'js.camera_insecure',
-                    'Camera is not available in this browser.'
-                ),
-                'warning'
-            );
-            if (photoCaptureInput) photoCaptureInput.click();
-            return;
-        }
-
-        if (!cameraModal) {
-            if (photoCaptureInput) photoCaptureInput.click();
-            return;
-        }
-
-        cameraModal.show();
-        startCamera();
-    }
-
-    async function startCamera() {
-        if (!cameraVideo) return;
-
-        stopCamera();
-        const generation = cameraGeneration;
-
-        cameraStatus.classList.remove('d-none');
-        cameraStatus.textContent = txt('js.camera_starting', 'Starting camera…');
-        cameraCaptureBtn.disabled = true;
-        cameraFallbackBtn.classList.add('d-none');
-
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                audio: false,
-                video: {
-                    facingMode: { ideal: cameraFacing },
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
-                }
-            });
-
-            // The modal was closed or another camera switch happened while the
-            // permission prompt was open: release the stream immediately.
-            if (generation !== cameraGeneration) {
-                stream.getTracks().forEach(function (track) { track.stop(); });
-                return;
-            }
-
-            cameraStream = stream;
-            cameraVideo.srcObject = stream;
-            await cameraVideo.play().catch(function () {});
-            cameraStatus.classList.add('d-none');
-            cameraCaptureBtn.disabled = false;
-        } catch (err) {
-            if (generation !== cameraGeneration) return;
-            cameraFail(cameraErrorKey(err));
+    function openDeviceCamera() {
+        if (photoCaptureInput) {
+            photoCaptureInput.click();
         }
     }
 
-    function cameraErrorKey(err) {
-        const name = (err && err.name) || '';
-        if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
-            return 'js.camera_denied';
-        }
-        if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'OverconstrainedError') {
-            return 'js.camera_not_found';
-        }
-        if (name === 'NotReadableError' || name === 'TrackStartError') {
-            return 'js.camera_busy';
-        }
-        return 'js.camera_unavailable';
-    }
-
-    function cameraFail(key) {
-        cameraStatus.classList.remove('d-none');
-        cameraStatus.textContent = txt(key, 'Camera is not available.');
-        cameraCaptureBtn.disabled = true;
-        cameraFallbackBtn.classList.remove('d-none');
-        stopCamera();
-    }
-
-    function stopCamera() {
-        cameraGeneration++;
-        if (cameraVideo) cameraVideo.srcObject = null;
-        if (cameraStream) {
-            cameraStream.getTracks().forEach(function (track) { track.stop(); });
-            cameraStream = null;
-        }
-        if (cameraCaptureBtn) cameraCaptureBtn.disabled = true;
-    }
-
-    if (cameraCaptureBtn) {
-        cameraCaptureBtn.addEventListener('click', function () {
-            if (!cameraVideo || cameraVideo.readyState < 2) {
-                toast(txt('js.camera_capture_failed', 'Could not capture the photo. Please try again.'), 'danger');
-                return;
-            }
-
-            const w = cameraVideo.videoWidth;
-            const h = cameraVideo.videoHeight;
-            const canvas = document.createElement('canvas');
-            canvas.width = w;
-            canvas.height = h;
-            canvas.getContext('2d').drawImage(cameraVideo, 0, 0, w, h);
-
-            canvas.toBlob(function (blob) {
-                if (!blob) {
-                    toast(txt('js.camera_capture_failed', 'Could not capture the photo. Please try again.'), 'danger');
-                    return;
-                }
-                const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
-                const file = new File([blob], 'camera_' + stamp + '.jpg', { type: 'image/jpeg' });
-                cameraModal.hide();
-                acceptPhotoFile(file);
-            }, 'image/jpeg', 0.92);
-        });
-    }
-
-    if (cameraSwitchBtn) {
-        cameraSwitchBtn.addEventListener('click', function () {
-            cameraFacing = cameraFacing === 'environment' ? 'user' : 'environment';
-            startCamera();
-        });
-    }
-
-    if (cameraFallbackBtn) {
-        cameraFallbackBtn.addEventListener('click', function () {
-            cameraModal.hide();
-            window.setTimeout(function () {
-                if (photoCaptureInput) photoCaptureInput.click();
-            }, 300);
-        });
-    }
-
-    window.addEventListener('pagehide', stopCamera);
 
     // ---------- photo normalisation ----------
     async function acceptPhotoFile(file) {
