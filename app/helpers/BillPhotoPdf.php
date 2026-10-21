@@ -37,11 +37,15 @@ final class BillPhotoPdf
         if ($width < 1 || $height < 1) {
             throw new InvalidArgumentException('JPEG has no usable dimensions.');
         }
-        if ($channels !== 1 && $channels !== 3) {
+        if (!in_array($channels, [1, 3, 4], true)) {
             throw new InvalidArgumentException('Unsupported JPEG colour space.');
         }
 
-        $colourSpace = $channels === 1 ? 'DeviceGray' : 'DeviceRGB';
+        $colourSpace = match ($channels) {
+            1 => 'DeviceGray',
+            4 => 'DeviceCMYK',
+            default => 'DeviceRGB',
+        };
 
         if ($width >= $height) {
             $pageW = self::A4_LONG;

@@ -29,7 +29,8 @@
     window.APP = window.APP || {};
     window.APP.BASE_URL = <?= json_encode(BASE_URL) ?>;
     window.APP.CSRF = <?= json_encode(csrf_token()) ?>;
-    window.APP.MAX_UPLOAD_MB = <?= json_encode((int) Setting::get('max_file_size_mb', 20)) ?>;
+    window.APP.MAX_UPLOAD_MB = <?= json_encode(effective_upload_mb()) ?>;
+    window.APP.MAX_UPLOAD_BYTES = <?= json_encode(effective_upload_bytes()) ?>;
     // When today's compliance check is still pending, hand the browser the exact
     // instant it is due. app.js arms a single timer for it, so a page left open
     // across the deadline shows the alert instead of sitting stale. Only the

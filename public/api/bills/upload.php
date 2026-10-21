@@ -6,6 +6,24 @@ require_once dirname(__DIR__, 3) . '/app/bootstrap.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
+// A warning/notice must never be printed into the JSON body. If a fatal error
+// still slips through, the shutdown handler below returns valid JSON instead of
+// an HTML error page, so the browser can show the real failure rather than the
+// generic "upload failed" fallback.
+ini_set('display_errors', '0');
+register_shutdown_function(static function (): void {
+    $error = error_get_last();
+    $fatal = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
+    if ($error === null || !in_array($error['type'], $fatal, true) || headers_sent()) {
+        return;
+    }
+    http_response_code(500);
+    echo json_encode(
+        ['success' => false, 'message' => t('api.upload_failed_retry')],
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+    );
+});
+
 if (!isPost()) {
     api_error(t('api.method_not_allowed'), 405);
 }
@@ -51,21 +69,19 @@ if ($branch['status'] !== 'active') {
     api_error(t('api.branch_inactive'), 403);
 }
 
-// Read settings-based size limit
-$maxSizeMb = (int) (Setting::get('max_file_size_mb', '20') ?: 20);
-$maxSize = $maxSizeMb * 1024 * 1024;
-if ($maxSize > MAX_FILE_SIZE) {
-    $maxSize = MAX_FILE_SIZE;
-}
+// The same effective cap the page and JavaScript use: configured limit, PHP
+// upload/post limits, the database packet limit and MAX_FILE_SIZE.
+$maxSize = effective_upload_bytes();
 
-// Never promise more than MySQL can actually accept in one packet
-// (shared hosts commonly cap max_allowed_packet at 16 MB).
-$effectiveMax = BillStorage::effectiveMaxUploadBytes();
-if ($maxSize > $effectiveMax) {
-    error_log('[bill-upload] configured max ' . format_bytes($maxSize)
-        . ' exceeds database limit ' . format_bytes($effectiveMax)
-        . ' (max_allowed_packet=' . BillStorage::maxPacketBytes() . '); capping uploads.');
-    $maxSize = $effectiveMax;
+// When PHP's post_max_size is exceeded it silently discards $_POST and
+// $_FILES, which used to surface as "choose a PDF/photo" instead of a size
+// error. Content-Length is still available, so report the real cause.
+$contentLength = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
+$postMax = upload_size_to_bytes((string) ini_get('post_max_size'));
+if ($contentLength > 0 && $postMax > 0 && $contentLength > $postMax) {
+    error_log('[bill-upload] POST exceeded post_max_size: content_length=' . $contentLength
+        . ' post_max_size=' . $postMax);
+    api_error(t('api.post_too_large', ['size' => format_bytes($maxSize)]), 413);
 }
 
 $paymentType = $_POST['payment_type'] ?? '';
@@ -102,8 +118,18 @@ if ($uploadSource === 'photo') {
 
     $file = $_FILES[$fileField];
     $photoName = sanitize_filename((string) $file['name']);
-    $validation = PhotoValidator::validate($file, $photoName);
+
+    try {
+        $validation = PhotoValidator::validate($file, $photoName);
+    } catch (Throwable $e) {
+        error_log('[bill-upload] photo validation crashed: ' . $e->getMessage());
+        api_error(t('api.photo_convert_failed'), 500);
+    }
+
     if (!$validation['ok']) {
+        error_log('[bill-upload] photo rejected: upload_error=' . ($validation['error_code'] ?? -1)
+            . ' size=' . (int) ($file['size'] ?? 0)
+            . ' reason=' . implode(' ', $validation['errors']));
         SecurityLogger::fileUploaded(
             $file,
             $photoName,
@@ -112,6 +138,7 @@ if ($uploadSource === 'photo') {
             $user,
             [
                 'reason'        => 'photo_validation_failed',
+                'upload_error'  => $validation['error_code'] ?? null,
                 'branch_id'     => (int) $user['branch_id'],
                 'upload_source' => 'photo',
             ]
@@ -265,8 +292,12 @@ try {
 
 // Folder write failed but the bill is safely stored in the database.
 if (!$fileSaved) {
-    log_activity((int) $user['id'], (int) $branch['id'], 'BILL_FS_SAVE_FAILED', 'bill', $billId,
-        'Folder copy could not be written for ' . $origName . '; bill stored in database only.');
+    try {
+        log_activity((int) $user['id'], (int) $branch['id'], 'BILL_FS_SAVE_FAILED', 'bill', $billId,
+            'Folder copy could not be written for ' . $origName . '; bill stored in database only.');
+    } catch (Throwable $e) {
+        error_log('[bill-upload] filesystem-failure audit failed: ' . $e->getMessage());
+    }
 }
 
 // File uploaded successfully. The destination is reported as a category, never
@@ -290,15 +321,21 @@ SecurityLogger::fileUploaded(
 
 // Audit detail stays English on purpose: the activity log is evidence, and
 // translating its free text would make cross-locale searching unreliable.
-log_activity(
-    (int) $user['id'],
-    (int) $branch['id'],
-    $uploadSource === 'photo' ? 'BILL_PHOTO_UPLOADED' : 'BILL_UPLOADED',
-    'bill',
-    $billId,
-    ($uploadSource === 'photo' ? 'Captured photo of ' : 'Uploaded ')
-        . ($paymentType === 'cash' ? 'Cash' : 'Card') . ' bill for ' . $businessDate . ': ' . $origName
-);
+try {
+    log_activity(
+        (int) $user['id'],
+        (int) $branch['id'],
+        $uploadSource === 'photo' ? 'BILL_PHOTO_UPLOADED' : 'BILL_UPLOADED',
+        'bill',
+        $billId,
+        ($uploadSource === 'photo' ? 'Captured photo of ' : 'Uploaded ')
+            . ($paymentType === 'cash' ? 'Cash' : 'Card') . ' bill for ' . $businessDate . ': ' . $origName
+    );
+} catch (Throwable $e) {
+    // The bill is already stored; an audit-table problem must not turn a
+    // successful upload into a failure the user retries into a duplicate.
+    error_log('[bill-upload] audit log failed: ' . $e->getMessage());
+}
 
 /**
  * Settle the "bills not uploaded" alert this bill has just changed.
@@ -313,7 +350,12 @@ log_activity(
  * toast below then tells the branch admin whether the owner is off the hook or
  * still waiting on something.
  */
-$compliance = DailyCompliance::settleAfterUpload((int) $branch['id'], date('Y-m-d'));
+try {
+    $compliance = DailyCompliance::settleAfterUpload((int) $branch['id'], date('Y-m-d'));
+} catch (Throwable $e) {
+    error_log('[bill-upload] compliance settle failed: ' . $e->getMessage());
+    $compliance = ['closed' => 0, 'compliant' => false, 'missing' => [], 'message' => ''];
+}
 
 $complianceMessage = '';
 if ($compliance['closed'] > 0) {
@@ -334,18 +376,22 @@ if ($compliance['closed'] > 0) {
             ]);
     }
 
-    log_activity(
-        (int) $user['id'],
-        (int) $branch['id'],
-        $compliance['compliant'] ? 'BILL_UPLOAD_COMPLIANCE_RESTORED' : 'BILL_UPLOAD_COMPLIANCE_PARTIAL',
-        'branch',
-        (int) $branch['id'],
-        'Daily upload compliance for ' . $branch['branch_code'] . ' on ' . date('Y-m-d') . ': '
-            . ($compliance['compliant']
-                ? 'restored, ' . $compliance['closed'] . ' alert(s) closed'
-                : 'still missing ' . implode('+', $compliance['missing'])
-                    . ', ' . $compliance['closed'] . ' alert(s) closed and re-raised')
-    );
+    try {
+        log_activity(
+            (int) $user['id'],
+            (int) $branch['id'],
+            $compliance['compliant'] ? 'BILL_UPLOAD_COMPLIANCE_RESTORED' : 'BILL_UPLOAD_COMPLIANCE_PARTIAL',
+            'branch',
+            (int) $branch['id'],
+            'Daily upload compliance for ' . $branch['branch_code'] . ' on ' . date('Y-m-d') . ': '
+                . ($compliance['compliant']
+                    ? 'restored, ' . $compliance['closed'] . ' alert(s) closed'
+                    : 'still missing ' . implode('+', $compliance['missing'])
+                        . ', ' . $compliance['closed'] . ' alert(s) closed and re-raised')
+        );
+    } catch (Throwable $e) {
+        error_log('[bill-upload] compliance audit failed: ' . $e->getMessage());
+    }
 }
 
 api_ok([

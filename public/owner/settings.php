@@ -91,10 +91,9 @@ if (isPost() && post('action') === 'update_settings') {
 $settings = Setting::all();
 
 // The portal cannot accept more than the database and PHP allow.
+$effectiveCapBytes = effective_upload_bytes();
+$phpCapBytes = upload_size_to_bytes((string) ini_get('upload_max_filesize')) ?: $effectiveCapBytes;
 $dbCapBytes = BillStorage::effectiveMaxUploadBytes();
-$phpCapBytes = (int) ini_get('upload_max_filesize');
-$phpCapBytes = $phpCapBytes > 0 ? $phpCapBytes * 1024 * 1024 : $dbCapBytes;
-$effectiveCapBytes = (int) min($dbCapBytes, $phpCapBytes);
 $configuredCapBytes = (int) ($settings['max_file_size_mb'] ?? 20) * 1024 * 1024;
 $capIsReduced = $configuredCapBytes > $effectiveCapBytes;
 

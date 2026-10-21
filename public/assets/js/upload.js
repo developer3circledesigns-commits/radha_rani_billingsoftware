@@ -66,9 +66,14 @@
     let photoUrl = null;
     let photoProcessing = false;
     let busy = false;
+    let autoRetryCount = 0;
 
-    // Robust MAX_FILE_SIZE from server is already enforced; mirror the client rule here.
-    const MAX_BYTES = (parseInt((window.APP || {}).MAX_UPLOAD_MB || '25', 10) || 25) * 1024 * 1024;
+    // Use the exact effective limit the server computed (PHP upload/post limits,
+    // database packet size and the configured setting all included). The MB
+    // value remains as a fallback for an older cached footer.
+    const MAX_BYTES = parseInt((window.APP || {}).MAX_UPLOAD_BYTES || '0', 10) ||
+        (parseInt((window.APP || {}).MAX_UPLOAD_MB || '20', 10) || 20) * 1024 * 1024;
+    const RAW_PHOTO_MAX = 50 * 1024 * 1024;
     const MAX_PHOTO_EDGE = 2400;
 
     // ---------- view state ----------
@@ -377,6 +382,7 @@
     // ---------- photo normalisation ----------
     async function acceptPhotoFile(file) {
         clearFileError();
+        autoRetryCount = 0;
 
         if (!file || (file.type && file.type.indexOf('image/') !== 0)) {
             setFileError(txt('js.only_photo', 'Only camera photos (JPEG) are allowed.'));
@@ -386,7 +392,10 @@
             setFileError(txt('js.empty_file', 'Empty files are not allowed.'));
             return;
         }
-        if (file.size > MAX_BYTES) {
+        // The original capture may be larger than the limit; the canvas
+        // normalisation below shrinks it. Only reject files too large to decode
+        // safely, then check the normalised JPEG against MAX_BYTES.
+        if (file.size > RAW_PHOTO_MAX) {
             setFileError(txt('js.photo_too_large', 'The photo is larger than the allowed limit.'));
             return;
         }
@@ -424,20 +433,23 @@
         uploadBtn.disabled = !enabled || busy;
     }
 
-    async function normalizePhoto(file) {
+    async function normalizePhoto(file, options) {
+        options = options || {};
+        const maxBytes = options.maxBytes || MAX_BYTES;
+        const maxEdge = options.maxEdge || MAX_PHOTO_EDGE;
         const image = await decodeImage(file);
         try {
             let w = image.width || image.naturalWidth;
             let h = image.height || image.naturalHeight;
             if (!w || !h) throw new Error('decode');
 
-            const scale = Math.min(1, MAX_PHOTO_EDGE / Math.max(w, h));
+            const scale = Math.min(1, maxEdge / Math.max(w, h));
             let tw = Math.max(1, Math.round(w * scale));
             let th = Math.max(1, Math.round(h * scale));
-            let quality = 0.9;
+            let quality = options.quality || 0.9;
             let blob = null;
 
-            for (let attempt = 0; attempt < 4; attempt++) {
+            for (let attempt = 0; attempt < 6; attempt++) {
                 const canvas = document.createElement('canvas');
                 canvas.width = tw;
                 canvas.height = th;
@@ -447,13 +459,13 @@
                 ctx.drawImage(image, 0, 0, tw, th);
 
                 blob = await canvasToBlob(canvas, quality);
-                if (blob && blob.size <= MAX_BYTES - 65536) break;
-                if (attempt === 3) throw new Error('too-large');
+                if (blob && blob.size <= maxBytes - 65536) break;
+                if (attempt === 5) throw new Error('too-large');
 
                 tw = Math.max(1, Math.round(tw * 0.75));
                 th = Math.max(1, Math.round(th * 0.75));
-                if (Math.max(tw, th) < 640) throw new Error('too-large');
-                quality = Math.max(0.6, quality - 0.1);
+                if (Math.max(tw, th) < 480) throw new Error('too-large');
+                quality = Math.max(0.5, quality - 0.1);
             }
 
             if (!blob || blob.size === 0) throw new Error('decode');
@@ -575,6 +587,7 @@
         const xhr = new XMLHttpRequest();
         xhr.open('POST', form.getAttribute('action'));
         xhr.responseType = 'json';
+        xhr.timeout = 120000;
 
         xhr.upload.addEventListener('progress', function (ev) {
             if (ev.lengthComputable) {
@@ -587,7 +600,7 @@
             }
         });
 
-        xhr.addEventListener('load', function () {
+        xhr.addEventListener('load', async function () {
             busy = false;
             uploadBtn.disabled = false;
 
@@ -599,6 +612,7 @@
             }
 
             if (xhr.status >= 200 && xhr.status < 300 && data && data.success) {
+                autoRetryCount = 0;
                 progressWrap.classList.add('d-none');
                 resultWrap.classList.remove('d-none');
                 const source = (data.data && data.data.source) || 'pdf';
@@ -656,12 +670,62 @@
                         toast(message, compliance.compliant ? 'success' : 'warning');
                     }
                 }
+            } else if (xhr.status === 413 && selectedPhoto && autoRetryCount < 2) {
+                // Some Apache/LiteSpeed hosts return 413 before PHP runs even
+                // though PHP's own limits are generous. Retry with a smaller
+                // normalised copy instead of making the user guess a size.
+                autoRetryCount++;
+                busy = true;
+                uploadBtn.disabled = true;
+                const caps = [900 * 1024, 400 * 1024];
+                const edges = [1600, 1200];
+                progressLabel.textContent = txt('js.retrying_smaller', 'Retrying with a smaller copy…');
+                try {
+                    const smaller = await normalizePhoto(selectedPhoto, {
+                        maxBytes: caps[autoRetryCount - 1],
+                        maxEdge: edges[autoRetryCount - 1],
+                        quality: 0.82,
+                    });
+                    showPhoto(smaller);
+                    busy = false;
+                    uploadBtn.disabled = false;
+                    if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit();
+                    } else {
+                        form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                    }
+                } catch (err) {
+                    busy = false;
+                    uploadBtn.disabled = false;
+                    showError(txt('js.server_too_large', 'The file is too large for the server. Please use a smaller photo.'));
+                }
+            } else if (xhr.status === 413) {
+                showError(txt('js.server_too_large', 'The file is too large for the server. Please use a smaller photo.'));
+            } else if (data && data.message) {
+                showError(data.message);
             } else {
-                showError(data && data.message ? data.message : txt('js.failed_retry', 'Upload failed — please retry.'));
+                // A non-JSON response (proxy error page, PHP fatal outside the
+                // JSON handler, etc.). Log the body for support and show the
+                // status code instead of an unhelpful generic message.
+                console.error('[bill-upload] non-JSON response', xhr.status, xhr.responseText);
+                showError(txt('js.failed_retry', 'Upload failed — please retry.')
+                    + (xhr.status ? ' (HTTP ' + xhr.status + ')' : ''));
             }
         });
 
         xhr.addEventListener('error', function () {
+            busy = false;
+            uploadBtn.disabled = false;
+            showError(txt('js.network_error', 'Network error — upload failed. Please retry.'));
+        });
+
+        xhr.addEventListener('timeout', function () {
+            busy = false;
+            uploadBtn.disabled = false;
+            showError(txt('js.timeout_error', 'The upload timed out. Please check your connection and retry.'));
+        });
+
+        xhr.addEventListener('abort', function () {
             busy = false;
             uploadBtn.disabled = false;
             showError(txt('js.network_error', 'Network error — upload failed. Please retry.'));

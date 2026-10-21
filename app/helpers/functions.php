@@ -355,6 +355,73 @@ function format_bytes(int $bytes): string
     return Lang::bytes($bytes);
 }
 
+/**
+ * Parse a php.ini size ("2M", "512K", "1G", "-1") into bytes.
+ * Returns 0 for an unlimited value.
+ */
+function upload_size_to_bytes(string $value): int
+{
+    $value = trim($value);
+    if ($value === '' || $value === '-1') {
+        return 0;
+    }
+
+    $unit = strtolower(substr($value, -1));
+    $number = (float) $value;
+    if ($number <= 0) {
+        return 0;
+    }
+
+    switch ($unit) {
+        case 'g':
+            return (int) ($number * 1073741824);
+        case 'm':
+            return (int) ($number * 1048576);
+        case 'k':
+            return (int) ($number * 1024);
+        default:
+            return (int) $number;
+    }
+}
+
+/**
+ * The real maximum size of one uploaded file.
+ *
+ * The setting alone is not enough: PHP's upload_max_filesize/post_max_size,
+ * the database packet limit and the hard MAX_FILE_SIZE all apply. The browser
+ * and the API must use this same number, otherwise the UI can happily accept a
+ * photo that PHP then discards before the application ever sees it.
+ */
+function effective_upload_bytes(): int
+{
+    static $bytes = null;
+    if ($bytes !== null) {
+        return $bytes;
+    }
+
+    $configured = max(1, (int) Setting::get('max_file_size_mb', '20')) * 1048576;
+    $caps = [MAX_FILE_SIZE, $configured, BillStorage::effectiveMaxUploadBytes()];
+
+    $phpUpload = upload_size_to_bytes((string) ini_get('upload_max_filesize'));
+    if ($phpUpload > 0) {
+        $caps[] = $phpUpload;
+    }
+
+    $postMax = upload_size_to_bytes((string) ini_get('post_max_size'));
+    if ($postMax > 0) {
+        // Leave room for multipart boundaries and the other form fields.
+        $caps[] = max(1, $postMax - 262144);
+    }
+
+    $bytes = max(1, min($caps));
+    return $bytes;
+}
+
+function effective_upload_mb(): int
+{
+    return max(1, (int) floor(effective_upload_bytes() / 1048576));
+}
+
 function format_datetime(?string $datetime): string
 {
     return Lang::relative($datetime);

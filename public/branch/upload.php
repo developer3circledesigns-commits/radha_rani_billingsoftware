@@ -18,12 +18,8 @@ if ($branch['status'] !== 'active') {
     redirect('branch/dashboard.php');
 }
 
-$maxSizeMb = (int) (Setting::get('max_file_size_mb', '20') ?: 20);
-$maxSize = $maxSizeMb * 1024 * 1024;
-if ($maxSize > MAX_FILE_SIZE) {
-    $maxSize = MAX_FILE_SIZE;
-    $maxSizeMb = (int) round($maxSize / 1048576);
-}
+$maxSize = effective_upload_bytes();
+$maxSizeMb = max(1, (int) floor($maxSize / 1048576));
 
 $pageTitle = t('upload.title');
 $pageSubtitle = $branch['branch_name'];
