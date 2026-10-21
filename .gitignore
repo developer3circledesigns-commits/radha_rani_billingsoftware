@@ -201,4 +201,14 @@ deploy*.txt
 #   public/.user.ini                                PHP limits
 #   public/assets/vendor/                           Bootstrap CSS/JS
 #   app/, database/*.sql, docker/, tools/, public/   application code
-#   DEPLOYMENT.md, README.md                        documentation
+#   DEPLOYMENT.md                                   documentation
+
+
+# -------------------------------------------------------------------
+# 11. README files
+# -------------------------------------------------------------------
+# README files are not versioned in this repository. The bracket
+# expression matches every capitalisation (README.md, readme.txt,
+# Readme, ...) at any depth, so a new one cannot be committed by
+# accident.
+[Rr][Ee][Aa][Dd][Mm][Ee]*
