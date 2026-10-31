@@ -107,6 +107,10 @@ ob_start();
                         <td><span class="badge bg-success-subtle text-success"><?= e(t('common.available')) ?></span></td>
                         <td class="pe-3 text-end">
                             <a href="<?= url('view.php') ?>?id=<?= $bill['id'] ?>" class="btn btn-xs btn-light" title="<?= e(t('common.view')) ?>"><i class="bi bi-eye"></i></a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
             </table>
         </div>
         <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
