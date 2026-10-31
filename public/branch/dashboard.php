@@ -92,7 +92,10 @@ ob_start();
         <div class="card kpi-card border-0 shadow-sm">
             <div class="card-body p-3">
                 <div class="status-pill <?= $statusClass ?> mb-2"><i class="bi <?= $statusIcon ?> me-1"></i><?= $statusLabel ?></div>
-                <div class="kpi-label"><?= e(t('bdash.upload_status')) ?></div>
+                <div class="d-flex justify-content-between">
+                    <div class="kpi-label"><?= e(t('bdash.upload_status')) ?></div>
+                    <a href="<?= url('branch/upload.php') ?>" class="btn btn-sm btn-primary"><?= e(t('bdash.uploads')) ?></a>
+                </div>
                 <div class="kpi-sub"><?= $latest
                     ? e(t('bdash.last_at', ['time' => format_datetime($latest['uploaded_at'])]))
                     : e(t('bdash.no_uploads_yet')) ?></div>

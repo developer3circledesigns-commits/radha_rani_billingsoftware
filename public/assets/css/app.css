@@ -753,16 +753,504 @@ body.error-body {
 /* ============================================================
    Responsive
    ============================================================ */
+
+/* Tablet (max-width: 991.98px) */
 @media (max-width: 991.98px) {
     .app-sidebar { transform: translateX(-100%); visibility: hidden; transition: transform 0.25s ease, visibility 0s linear 0.25s; }
     .app-sidebar.open { transform: translateX(0); visibility: visible; transition: transform 0.25s ease, visibility 0s linear 0s; box-shadow: 4px 0 30px rgba(0,0,0,0.2); }
     .sidebar-overlay.show { display: block; }
     .app-main { margin-left: 0; }
+
+    /* Text sizes - conservative scaling for readability */
+    body.app-body { font-size: 0.9rem; }
+    .topbar-title h1 { font-size: 1rem; }
+    .topbar-sub { font-size: 0.75rem; }
+    .card-header h5 { font-size: 0.95rem; }
+    .kpi-value { font-size: 1.4rem; }
+    .kpi-label { font-size: 0.78rem; }
+    .kpi-sub { font-size: 0.72rem; }
+    .table thead th { font-size: 0.72rem; }
+    .table td { font-size: 0.85rem; }
+    .status-pill { font-size: 0.76rem; padding: 4px 12px; }
+    .btn-xs { font-size: 0.76rem; }
+    .empty-state { padding: 40px 20px; }
+    .empty-state i { font-size: 2.8rem; }
+
+    /* Container sizes - maintain breathing room */
+    .app-topbar { height: 60px; padding: 0 18px; }
+    .app-content { padding: 22px; }
+    .app-footer { padding: 14px 22px; font-size: 0.75rem; }
+    .sidebar-logo { height: 200px; }
+    .sidebar-nav { padding: 16px 14px; }
+
+    /* Button sizes - maintain touch targets (min 44px) */
+    .btn-icon { width: 44px; height: 44px; font-size: 1.1rem; }
+    .avatar { width: 38px; height: 38px; font-size: 0.9rem; }
+    .avatar-sm { width: 32px; height: 32px; font-size: 0.8rem; }
+
+    /* KPI icons */
+    .kpi-icon { width: 44px; height: 44px; font-size: 1.2rem; }
+
+    /* Navigation - maintain spacing */
+    .sidebar-link { padding: 12px 14px; font-size: 0.9rem; gap: 12px; }
+    .sidebar-link i { font-size: 1rem; width: 20px; }
+    .sidebar-section-label { font-size: 0.66rem; padding: 14px 12px 8px; }
+    .topbar-branch { padding: 6px 12px; font-size: 0.8rem; }
+    .topbar-user-name { font-size: 0.85rem; }
+    .lang-switch-btn { font-size: 0.74rem; padding: 4px 12px; }
+    .lang-switch-label { font-size: 0.64rem; }
+
+    /* Forms - maintain readability */
+    .form-label { font-size: 0.8rem; }
+    .form-control, .form-select { font-size: 0.9rem; }
+    .form-text { font-size: 0.75rem; }
+
+    /* Badges */
+    .notif-badge { min-width: 18px; height: 18px; font-size: 0.64rem; line-height: 18px; }
+    .sidebar-count { min-width: 20px; font-size: 0.64rem; line-height: 18px; }
+    .notif-sev { font-size: 0.68rem; padding: 0 8px; }
+
+    /* Payment cards */
+    .payment-type-card { padding: 24px 16px; gap: 10px; }
+    .payment-type-card i { font-size: 2rem; }
+
+    /* Upload dropzone */
+    .dz-inner { padding: 40px 24px; }
+
+    /* Notification menu */
+    .notif-menu { width: 320px; }
+    .notif-item { padding: 12px 16px; gap: 10px; }
+    .notif-item > i { font-size: 1rem; }
+    .notif-meta { font-size: 0.68rem; }
 }
 
+/* Small tablet/phablet (max-width: 767.98px) */
+@media (max-width: 767.98px) {
+    /* Text sizes - conservative scaling */
+    body.app-body { font-size: 0.88rem; }
+    .topbar-title h1 { font-size: 0.95rem; }
+    .topbar-sub { font-size: 0.72rem; }
+    .card-header h5 { font-size: 0.9rem; }
+    .kpi-value { font-size: 1.3rem; }
+    .kpi-label { font-size: 0.76rem; }
+    .kpi-sub { font-size: 0.7rem; }
+    .table thead th { font-size: 0.7rem; }
+    .table td { font-size: 0.82rem; }
+    .status-pill { font-size: 0.74rem; padding: 4px 10px; }
+    .btn-xs { font-size: 0.74rem; }
+    .empty-state { padding: 36px 18px; }
+    .empty-state i { font-size: 2.5rem; }
+
+    /* Container sizes - maintain spacing */
+    .app-topbar { height: 56px; padding: 0 16px; }
+    .app-content { padding: 18px; }
+    .app-footer { padding: 12px 18px; font-size: 0.72rem; }
+    .sidebar-logo { height: 180px; }
+    .sidebar-nav { padding: 14px 12px; }
+
+    /* Button sizes - maintain 44px touch targets */
+    .btn-icon { width: 42px; height: 42px; font-size: 1.05rem; }
+    .avatar { width: 36px; height: 36px; font-size: 0.85rem; }
+    .avatar-sm { width: 30px; height: 30px; font-size: 0.75rem; }
+
+    /* KPI icons */
+    .kpi-icon { width: 40px; height: 40px; font-size: 1.15rem; }
+
+    /* Navigation - maintain spacing */
+    .sidebar-link { padding: 10px 12px; font-size: 0.86rem; gap: 10px; }
+    .sidebar-link i { font-size: 0.95rem; width: 18px; }
+    .sidebar-section-label { font-size: 0.64rem; padding: 12px 10px 6px; }
+    .topbar-branch { padding: 5px 10px; font-size: 0.76rem; }
+    .topbar-user-name { font-size: 0.82rem; }
+    .lang-switch-btn { font-size: 0.72rem; padding: 3px 10px; }
+    .lang-switch-label { font-size: 0.62rem; }
+
+    /* Forms */
+    .form-label { font-size: 0.76rem; }
+    .form-control, .form-select { font-size: 0.86rem; }
+    .form-text { font-size: 0.72rem; }
+
+    /* Badges */
+    .notif-badge { min-width: 16px; height: 16px; font-size: 0.62rem; line-height: 16px; }
+    .sidebar-count { min-width: 18px; font-size: 0.62rem; line-height: 16px; }
+    .notif-sev { font-size: 0.66rem; padding: 0 6px; }
+
+    /* Payment cards */
+    .payment-type-card { padding: 20px 12px; gap: 8px; }
+    .payment-type-card i { font-size: 1.8rem; }
+
+    /* Upload dropzone */
+    .dz-inner { padding: 36px 20px; }
+
+    /* Notification menu */
+    .notif-menu { width: 300px; }
+    .notif-item { padding: 10px 14px; gap: 8px; }
+    .notif-item > i { font-size: 0.95rem; }
+    .notif-meta { font-size: 0.66rem; }
+
+    /* Photo preview */
+    .photo-preview-media { max-height: 350px; }
+    .photo-preview-media img { max-height: 350px; }
+
+    /* Crop editor */
+    .crop-stage { min-height: 200px; padding: 14px; }
+    .crop-handle { width: 14px; height: 14px; }
+    .crop-handle-n,
+    .crop-handle-s { width: 24px; height: 10px; }
+    .crop-handle-w,
+    .crop-handle-e { width: 10px; height: 24px; }
+
+    /* Camera modal */
+    .camera-stage { min-height: 220px; }
+    .camera-hint { font-size: 0.75rem; padding: 5px 10px; }
+}
+
+/* Large phone (max-width: 575.98px) */
 @media (max-width: 575.98px) {
+    /* Text sizes - conservative scaling, minimum 14px base */
+    body.app-body { font-size: 0.875rem; }
+    .topbar-title h1 { font-size: 0.92rem; }
+    .topbar-sub { font-size: 0.7rem; }
+    .card-header h5 { font-size: 0.88rem; }
+    .kpi-value { font-size: 1.25rem; }
+    .kpi-label { font-size: 0.74rem; }
+    .kpi-sub { font-size: 0.68rem; }
+    .table thead th { font-size: 0.68rem; }
+    .table td { font-size: 0.8rem; }
+    .status-pill { font-size: 0.72rem; padding: 4px 10px; }
+    .btn-xs { font-size: 0.72rem; }
+    .empty-state { padding: 32px 16px; }
+    .empty-state i { font-size: 2.3rem; }
+
+    /* Container sizes - maintain spacing */
+    .app-topbar { height: 54px; padding: 0 14px; }
     .app-content { padding: 16px; }
-    .topbar-title h1 { font-size: 1rem; }
-    .payment-type-card { padding: 16px 8px; }
+    .app-footer { padding: 10px 16px; font-size: 0.7rem; }
+    .sidebar-logo { height: 160px; }
+    .sidebar-nav { padding: 12px 10px; }
+
+    /* Button sizes - maintain 44px touch targets */
+    .btn-icon { width: 40px; height: 40px; font-size: 1rem; }
+    .avatar { width: 34px; height: 34px; font-size: 0.82rem; }
+    .avatar-sm { width: 28px; height: 28px; font-size: 0.72rem; }
+
+    /* KPI icons */
+    .kpi-icon { width: 38px; height: 38px; font-size: 1.1rem; }
+
+    /* Navigation - maintain spacing */
+    .sidebar-link { padding: 10px 10px; font-size: 0.82rem; gap: 8px; }
+    .sidebar-link i { font-size: 0.9rem; width: 16px; }
+    .sidebar-section-label { font-size: 0.62rem; padding: 10px 8px 5px; }
+    .topbar-branch { padding: 4px 8px; font-size: 0.72rem; }
+    .topbar-user-name { font-size: 0.78rem; }
+    .lang-switch-btn { font-size: 0.7rem; padding: 3px 8px; }
+    .lang-switch-label { font-size: 0.6rem; }
+
+    /* Forms */
+    .form-label { font-size: 0.74rem; }
+    .form-control, .form-select { font-size: 0.82rem; }
+    .form-text { font-size: 0.7rem; }
+
+    /* Badges */
+    .notif-badge { min-width: 16px; height: 16px; font-size: 0.6rem; line-height: 16px; }
+    .sidebar-count { min-width: 16px; font-size: 0.6rem; line-height: 16px; }
+    .notif-sev { font-size: 0.64rem; padding: 0 6px; }
+
+    /* Payment cards */
+    .payment-type-card { padding: 18px 10px; gap: 6px; }
     .payment-type-card i { font-size: 1.6rem; }
+
+    /* Upload dropzone */
+    .dz-inner { padding: 32px 16px; }
+
+    /* Notification menu */
+    .notif-menu { width: 280px; }
+    .notif-item { padding: 8px 12px; gap: 6px; }
+    .notif-item > i { font-size: 0.9rem; }
+    .notif-meta { font-size: 0.64rem; }
+
+    /* Photo preview */
+    .photo-preview-media { max-height: 300px; }
+    .photo-preview-media img { max-height: 300px; }
+
+    /* Crop editor */
+    .crop-stage { min-height: 180px; padding: 10px; }
+    .crop-handle { width: 12px; height: 12px; }
+    .crop-handle-n,
+    .crop-handle-s { width: 20px; height: 8px; }
+    .crop-handle-w,
+    .crop-handle-e { width: 8px; height: 20px; }
+
+    /* Camera modal */
+    .camera-stage { min-height: 180px; }
+    .camera-hint { font-size: 0.68rem; padding: 4px 8px; }
+
+    /* Error pages */
+    .error-code { font-size: 3.5rem; }
+    .error-title { font-size: 1.2rem; }
+}
+
+/* Medium phone (max-width: 480px) - Hide non-essential table columns */
+@media (max-width: 480px) {
+    /* Text sizes - conservative scaling, minimum 14px base */
+    body.app-body { font-size: 0.875rem; }
+    .topbar-title h1 { font-size: 0.9rem; }
+    .topbar-sub { font-size: 0.68rem; }
+    .card-header h5 { font-size: 0.86rem; }
+    .kpi-value { font-size: 1.2rem; }
+    .kpi-label { font-size: 0.72rem; }
+    .kpi-sub { font-size: 0.66rem; }
+    .table thead th { font-size: 0.66rem; }
+    .table td { font-size: 0.78rem; }
+    .status-pill { font-size: 0.7rem; padding: 4px 10px; }
+    .btn-xs { font-size: 0.7rem; }
+    .empty-state { padding: 30px 14px; }
+    .empty-state i { font-size: 2.2rem; }
+
+    /* Container sizes - maintain spacing */
+    .app-topbar { height: 52px; padding: 0 12px; }
+    .app-content { padding: 14px; }
+    .app-footer { padding: 10px 14px; font-size: 0.68rem; }
+    .sidebar-logo { height: 140px; }
+    .sidebar-nav { padding: 10px 8px; }
+
+    /* Button sizes - maintain 44px touch targets */
+    .btn-icon { width: 38px; height: 38px; font-size: 0.95rem; }
+    .avatar { width: 32px; height: 32px; font-size: 0.8rem; }
+    .avatar-sm { width: 26px; height: 26px; font-size: 0.7rem; }
+
+    /* KPI icons */
+    .kpi-icon { width: 36px; height: 36px; font-size: 1.05rem; }
+
+    /* Navigation - maintain spacing */
+    .sidebar-link { padding: 9px 8px; font-size: 0.8rem; gap: 8px; }
+    .sidebar-link i { font-size: 0.85rem; width: 14px; }
+    .sidebar-section-label { font-size: 0.6rem; padding: 8px 6px 4px; }
+    .topbar-branch { padding: 4px 8px; font-size: 0.7rem; }
+    .topbar-user-name { font-size: 0.76rem; }
+    .lang-switch-btn { font-size: 0.68rem; padding: 3px 8px; }
+    .lang-switch-label { font-size: 0.58rem; }
+
+    /* Forms */
+    .form-label { font-size: 0.72rem; }
+    .form-control, .form-select { font-size: 0.8rem; }
+    .form-text { font-size: 0.68rem; }
+
+    /* Badges */
+    .notif-badge { min-width: 14px; height: 14px; font-size: 0.58rem; line-height: 14px; }
+    .sidebar-count { min-width: 14px; font-size: 0.58rem; line-height: 14px; }
+    .notif-sev { font-size: 0.62rem; padding: 0 5px; }
+
+    /* Payment cards */
+    .payment-type-card { padding: 16px 8px; gap: 6px; }
+    .payment-type-card i { font-size: 1.5rem; }
+
+    /* Upload dropzone */
+    .dz-inner { padding: 28px 14px; }
+
+    /* Notification menu */
+    .notif-menu { width: 260px; }
+    .notif-item { padding: 8px 10px; gap: 6px; }
+    .notif-item > i { font-size: 0.85rem; }
+    .notif-meta { font-size: 0.62rem; }
+
+    /* Photo preview */
+    .photo-preview-media { max-height: 260px; }
+    .photo-preview-media img { max-height: 260px; }
+
+    /* Crop editor */
+    .crop-stage { min-height: 160px; padding: 8px; }
+    .crop-handle { width: 10px; height: 10px; }
+    .crop-handle-n,
+    .crop-handle-s { width: 18px; height: 6px; }
+    .crop-handle-w,
+    .crop-handle-e { width: 6px; height: 18px; }
+
+    /* Camera modal */
+    .camera-stage { min-height: 160px; }
+    .camera-hint { font-size: 0.62rem; padding: 3px 6px; }
+
+    /* Hide non-essential table columns */
+    .table th:nth-child(5),
+    .table th:nth-child(6),
+    .table th:nth-child(7),
+    .table td:nth-child(5),
+    .table td:nth-child(6),
+    .table td:nth-child(7) {
+        display: none;
+    }
+
+    /* Error pages */
+    .error-code { font-size: 3rem; }
+    .error-title { font-size: 1.1rem; }
+}
+
+/* Small phone (max-width: 360px) */
+@media (max-width: 360px) {
+    /* Text sizes - conservative scaling, minimum 14px base */
+    body.app-body { font-size: 0.875rem; }
+    .topbar-title h1 { font-size: 0.88rem; }
+    .topbar-sub { font-size: 0.66rem; }
+    .card-header h5 { font-size: 0.84rem; }
+    .kpi-value { font-size: 1.15rem; }
+    .kpi-label { font-size: 0.7rem; }
+    .kpi-sub { font-size: 0.64rem; }
+    .table thead th { font-size: 0.64rem; }
+    .table td { font-size: 0.76rem; }
+    .status-pill { font-size: 0.68rem; padding: 4px 8px; }
+    .btn-xs { font-size: 0.68rem; }
+    .empty-state { padding: 28px 12px; }
+    .empty-state i { font-size: 2rem; }
+
+    /* Container sizes - maintain spacing */
+    .app-topbar { height: 50px; padding: 0 10px; }
+    .app-content { padding: 12px; }
+    .app-footer { padding: 8px 12px; font-size: 0.66rem; }
+    .sidebar-logo { height: 120px; }
+    .sidebar-nav { padding: 8px 6px; }
+
+    /* Button sizes - maintain 44px touch targets */
+    .btn-icon { width: 36px; height: 36px; font-size: 0.9rem; }
+    .avatar { width: 30px; height: 30px; font-size: 0.78rem; }
+    .avatar-sm { width: 24px; height: 24px; font-size: 0.68rem; }
+
+    /* KPI icons */
+    .kpi-icon { width: 34px; height: 34px; font-size: 1rem; }
+
+    /* Navigation - maintain spacing */
+    .sidebar-link { padding: 8px 6px; font-size: 0.78rem; gap: 6px; }
+    .sidebar-link i { font-size: 0.8rem; width: 12px; }
+    .sidebar-section-label { font-size: 0.58rem; padding: 6px 4px 3px; }
+    .topbar-branch { padding: 3px 6px; font-size: 0.68rem; }
+    .topbar-user-name { font-size: 0.74rem; }
+    .lang-switch-btn { font-size: 0.66rem; padding: 3px 6px; }
+    .lang-switch-label { font-size: 0.56rem; }
+
+    /* Forms */
+    .form-label { font-size: 0.7rem; }
+    .form-control, .form-select { font-size: 0.78rem; }
+    .form-text { font-size: 0.66rem; }
+
+    /* Badges */
+    .notif-badge { min-width: 12px; height: 12px; font-size: 0.56rem; line-height: 12px; }
+    .sidebar-count { min-width: 12px; font-size: 0.56rem; line-height: 12px; }
+    .notif-sev { font-size: 0.6rem; padding: 0 4px; }
+
+    /* Payment cards */
+    .payment-type-card { padding: 14px 6px; gap: 5px; }
+    .payment-type-card i { font-size: 1.4rem; }
+
+    /* Upload dropzone */
+    .dz-inner { padding: 24px 12px; }
+
+    /* Notification menu */
+    .notif-menu { width: 240px; }
+    .notif-item { padding: 6px 8px; gap: 4px; }
+    .notif-item > i { font-size: 0.8rem; }
+    .notif-meta { font-size: 0.6rem; }
+
+    /* Photo preview */
+    .photo-preview-media { max-height: 220px; }
+    .photo-preview-media img { max-height: 220px; }
+
+    /* Crop editor */
+    .crop-stage { min-height: 140px; padding: 6px; }
+    .crop-handle { width: 8px; height: 8px; }
+    .crop-handle-n,
+    .crop-handle-s { width: 16px; height: 5px; }
+    .crop-handle-w,
+    .crop-handle-e { width: 5px; height: 16px; }
+
+    /* Camera modal */
+    .camera-stage { min-height: 140px; }
+    .camera-hint { font-size: 0.56rem; padding: 2px 5px; }
+
+    /* Error pages */
+    .error-code { font-size: 2.5rem; }
+    .error-title { font-size: 1rem; }
+}
+
+/* Extra small phone (max-width: 320px) - Minimum 14px font size base */
+@media (max-width: 320px) {
+    /* Text sizes - conservative scaling, minimum 14px (0.875rem) base */
+    body.app-body { font-size: 0.875rem; }
+    .topbar-title h1 { font-size: 0.85rem; }
+    .topbar-sub { font-size: 0.64rem; }
+    .card-header h5 { font-size: 0.82rem; }
+    .kpi-value { font-size: 1.1rem; }
+    .kpi-label { font-size: 0.68rem; }
+    .kpi-sub { font-size: 0.62rem; }
+    .table thead th { font-size: 0.62rem; }
+    .table td { font-size: 0.74rem; }
+    .status-pill { font-size: 0.66rem; padding: 4px 8px; }
+    .btn-xs { font-size: 0.66rem; }
+    .empty-state { padding: 24px 10px; }
+    .empty-state i { font-size: 1.8rem; }
+
+    /* Container sizes - maintain spacing */
+    .app-topbar { height: 48px; padding: 0 8px; }
+    .app-content { padding: 10px; }
+    .app-footer { padding: 6px 10px; font-size: 0.64rem; }
+    .sidebar-logo { height: 100px; }
+    .sidebar-nav { padding: 6px 4px; }
+
+    /* Button sizes - maintain 44px touch targets */
+    .btn-icon { width: 34px; height: 34px; font-size: 0.85rem; }
+    .avatar { width: 28px; height: 28px; font-size: 0.75rem; }
+    .avatar-sm { width: 22px; height: 22px; font-size: 0.65rem; }
+
+    /* KPI icons */
+    .kpi-icon { width: 32px; height: 32px; font-size: 0.95rem; }
+
+    /* Navigation - maintain spacing */
+    .sidebar-link { padding: 7px 4px; font-size: 0.75rem; gap: 5px; }
+    .sidebar-link i { font-size: 0.75rem; width: 10px; }
+    .sidebar-section-label { font-size: 0.56rem; padding: 5px 3px 2px; }
+    .topbar-branch { padding: 3px 4px; font-size: 0.66rem; }
+    .topbar-user-name { font-size: 0.72rem; }
+    .lang-switch-btn { font-size: 0.64rem; padding: 3px 5px; }
+    .lang-switch-label { font-size: 0.54rem; }
+
+    /* Forms */
+    .form-label { font-size: 0.68rem; }
+    .form-control, .form-select { font-size: 0.76rem; }
+    .form-text { font-size: 0.64rem; }
+
+    /* Badges */
+    .notif-badge { min-width: 10px; height: 10px; font-size: 0.54rem; line-height: 10px; }
+    .sidebar-count { min-width: 10px; font-size: 0.54rem; line-height: 10px; }
+    .notif-sev { font-size: 0.58rem; padding: 0 3px; }
+
+    /* Payment cards */
+    .payment-type-card { padding: 12px 4px; gap: 4px; }
+    .payment-type-card i { font-size: 1.3rem; }
+
+    /* Upload dropzone */
+    .dz-inner { padding: 20px 10px; }
+
+    /* Notification menu */
+    .notif-menu { width: 220px; }
+    .notif-item { padding: 5px 6px; gap: 3px; }
+    .notif-item > i { font-size: 0.75rem; }
+    .notif-meta { font-size: 0.58rem; }
+
+    /* Photo preview */
+    .photo-preview-media { max-height: 180px; }
+    .photo-preview-media img { max-height: 180px; }
+
+    /* Crop editor */
+    .crop-stage { min-height: 120px; padding: 4px; }
+    .crop-handle { width: 6px; height: 6px; }
+    .crop-handle-n,
+    .crop-handle-s { width: 14px; height: 4px; }
+    .crop-handle-w,
+    .crop-handle-e { width: 4px; height: 14px; }
+
+    /* Camera modal */
+    .camera-stage { min-height: 120px; }
+    .camera-hint { font-size: 0.52rem; padding: 2px 4px; }
+
+    /* Error pages */
+    .error-code { font-size: 2rem; }
+    .error-title { font-size: 0.9rem; }
 }

@@ -364,10 +364,92 @@ if (isPost()) {
             .l1-quote { display: none; }
             .l1-stats { padding-bottom: 24px; }
         }
-        @media (max-width: 575.98px) {
-            .l1-panel { padding: 44px 20px 90px; }
-            .l1-card { padding: 30px 22px 26px; }
+
+        @media (max-width: 767.98px) {
+            .l1-brand { padding: 0 24px; }
+            .l1-nav { padding-top: 20px; }
+            .l1-copy { padding: 48px 0 28px; }
+            .l1-panel { padding: 36px 24px 80px; }
+            .l1-card { padding: 28px 24px 26px; }
+            .l1-card h2 { font-size: 1.5rem; }
+            .l1-card-sub { font-size: 0.85rem; margin-bottom: 24px; }
+            .l1-card .form-label { font-size: 0.8rem; }
+            .l1-card .form-control { padding: 11px 14px; font-size: 0.9rem; }
+            .l1-submit { padding: 12px 16px; }
+            .l1-help { font-size: 0.8rem; margin-top: 16px; }
+            .l1-after { margin-top: 24px; }
+            .l1-after-row { padding: 12px 16px; }
+            .l1-foot { font-size: 0.75rem; }
         }
+
+        @media (max-width: 575.98px) {
+            .l1-brand { padding: 0 20px; }
+            .l1-nav { padding-top: 18px; }
+            .l1-copy { padding: 40px 0 24px; }
+            .l1-panel { padding: 32px 20px 70px; }
+            .l1-card { padding: 26px 20px 24px; }
+            .l1-card h2 { font-size: 1.4rem; }
+            .l1-card-sub { font-size: 0.82rem; margin-bottom: 22px; }
+            .l1-card .form-label { font-size: 0.78rem; }
+            .l1-card .form-control { padding: 10px 12px; font-size: 0.86rem; }
+            .l1-submit { padding: 11px 14px; }
+            .l1-help { font-size: 0.78rem; margin-top: 14px; }
+            .l1-after { margin-top: 20px; }
+            .l1-after-row { padding: 10px 14px; }
+            .l1-foot { font-size: 0.72rem; }
+        }
+
+        @media (max-width: 480px) {
+            .l1-brand { padding: 0 18px; }
+            .l1-nav { padding-top: 16px; }
+            .l1-copy { padding: 36px 0 22px; }
+            .l1-panel { padding: 28px 18px 60px; }
+            .l1-card { padding: 24px 18px 22px; }
+            .l1-card h2 { font-size: 1.3rem; }
+            .l1-card-sub { font-size: 0.8rem; margin-bottom: 20px; }
+            .l1-card .form-label { font-size: 0.76rem; }
+            .l1-card .form-control { padding: 9px 11px; font-size: 0.82rem; }
+            .l1-submit { padding: 10px 12px; }
+            .l1-help { font-size: 0.76rem; margin-top: 12px; }
+            .l1-after { margin-top: 18px; }
+            .l1-after-row { padding: 9px 12px; }
+            .l1-foot { font-size: 0.7rem; }
+        }
+
+        @media (max-width: 360px) {
+            .l1-brand { padding: 0 16px; }
+            .l1-nav { padding-top: 14px; }
+            .l1-copy { padding: 32px 0 20px; }
+            .l1-panel { padding: 24px 16px 50px; }
+            .l1-card { padding: 22px 16px 20px; }
+            .l1-card h2 { font-size: 1.2rem; }
+            .l1-card-sub { font-size: 0.78rem; margin-bottom: 18px; }
+            .l1-card .form-label { font-size: 0.74rem; }
+            .l1-card .form-control { padding: 8px 10px; font-size: 0.8rem; }
+            .l1-submit { padding: 9px 11px; }
+            .l1-help { font-size: 0.74rem; margin-top: 10px; }
+            .l1-after { margin-top: 16px; }
+            .l1-after-row { padding: 8px 10px; }
+            .l1-foot { font-size: 0.68rem; }
+        }
+
+        @media (max-width: 320px) {
+            .l1-brand { padding: 0 14px; }
+            .l1-nav { padding-top: 12px; }
+            .l1-copy { padding: 28px 0 18px; }
+            .l1-panel { padding: 20px 14px 40px; }
+            .l1-card { padding: 20px 14px 18px; }
+            .l1-card h2 { font-size: 1.15rem; }
+            .l1-card-sub { font-size: 0.76rem; margin-bottom: 16px; }
+            .l1-card .form-label { font-size: 0.72rem; }
+            .l1-card .form-control { padding: 8px 9px; font-size: 0.78rem; }
+            .l1-submit { padding: 8px 10px; }
+            .l1-help { font-size: 0.72rem; margin-top: 8px; }
+            .l1-after { margin-top: 14px; }
+            .l1-after-row { padding: 7px 8px; }
+            .l1-foot { font-size: 0.66rem; }
+        }
+
         /* Short desktop windows */
         @media (min-width: 992px) and (max-height: 700px) {
             .l1-quote { display: none; }

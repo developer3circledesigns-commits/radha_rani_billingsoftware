@@ -14,14 +14,14 @@ class Bill
      * every PDF into PHP memory for a page that only shows metadata.
      */
     public const LIST_COLUMNS = 'b.id, b.branch_id, b.uploaded_by, b.payment_type, b.business_date,
-                                b.original_filename, b.stored_filename, b.file_path, b.archived_path,
+                                b.original_filename, b.file_name, b.stored_filename, b.file_path, b.archived_path,
                                 b.mime_type, b.upload_source, b.source_mime, b.storage_status,
                                 b.file_size, b.description, b.pdf_hash,
                                 b.status, b.uploaded_at, b.updated_at, b.deleted_at, b.purge_after';
 
     /** Same column set without the b. alias, for single-row lookups. */
     public const ROW_COLUMNS = 'id, branch_id, uploaded_by, payment_type, business_date,
-                                original_filename, stored_filename, file_path, archived_path,
+                                original_filename, file_name, stored_filename, file_path, archived_path,
                                 mime_type, upload_source, source_mime, storage_status,
                                 file_size, description, pdf_hash,
                                 status, uploaded_at, updated_at, deleted_at, purge_after';
@@ -30,15 +30,16 @@ class Bill
     {
         Database::execute(
             'INSERT INTO bills (branch_id, uploaded_by, payment_type, business_date,
-                                original_filename, stored_filename, file_path, mime_type, file_size, description,
+                                original_filename, file_name, stored_filename, file_path, mime_type, file_size, description,
                                 pdf_bytes, pdf_hash, storage_status, upload_source, source_mime)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 $data['branch_id'],
                 $data['uploaded_by'],
                 $data['payment_type'],
                 $data['business_date'],
                 $data['original_filename'],
+                $data['file_name'] ?? $data['original_filename'],
                 $data['stored_filename'],
                 $data['file_path'],
                 $data['mime_type'],
@@ -50,7 +51,7 @@ class Bill
                 $data['upload_source'] ?? 'pdf',
                 $data['source_mime'] ?? null,
             ],
-            [10] // pdf_bytes -> bind as a LOB
+            [11] // pdf_bytes -> bind as a LOB
         );
         return Database::lastId();
     }

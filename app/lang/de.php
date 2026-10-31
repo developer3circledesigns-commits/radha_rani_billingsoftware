@@ -577,6 +577,7 @@ return [
         'bdash.empty_title'      => 'Noch keine Belege hochgeladen.',
         'bdash.empty_hint'       => 'Laden Sie den Bar- oder Kartenbeleg des Tages als PDF hoch.',
         'bdash.upload_bill'      => 'Beleg hochladen',
+        'bdash.uploads'      => 'Belege hochladen',
 
         // ==============================================================
         // Meine Uploads

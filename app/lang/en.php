@@ -565,6 +565,7 @@ return [
         'bdash.empty_title'      => 'No bills uploaded yet.',
         'bdash.empty_hint'       => "Upload today's cash or card bill PDF.",
         'bdash.upload_bill'      => 'Upload Bill',
+        'bdash.uploads'      => 'Upload Bills',
 
         // ==============================================================
         // My uploads
