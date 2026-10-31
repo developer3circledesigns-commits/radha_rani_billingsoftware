@@ -379,6 +379,21 @@ body.app-body {
 .btn-xs { padding: 0.2rem 0.4rem; font-size: 0.78rem; line-height: 1.2; }
 .btn-xs i { font-size: 0.9rem; }
 
+/* Table action buttons - ensure visibility on mobile */
+.table .btn-xs {
+    min-width: 32px;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Ensure actions column is always visible */
+.table .text-end {
+    white-space: nowrap;
+    min-width: 50px;
+}
+
 /* ---------- Status pills ---------- */
 .status-pill {
     display: inline-flex;
@@ -412,6 +427,12 @@ body.app-body {
 }
 .table td { vertical-align: middle; font-size: 0.88rem; }
 .table-hover tbody tr:hover { background-color: rgba(247, 248, 250, 0.8); }
+
+/* Ensure table scrolls horizontally on mobile instead of hiding columns */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
 
 /* ---------- Charts ---------- */
 .chart-bars { border-bottom: 1px solid var(--rr-border); overflow-x: auto; }
@@ -773,6 +794,20 @@ body.error-body {
     .table td { font-size: 0.85rem; }
     .status-pill { font-size: 0.76rem; padding: 4px 12px; }
     .btn-xs { font-size: 0.76rem; }
+
+    /* Table action buttons - ensure visibility */
+    .table .btn-xs {
+        min-width: 36px;
+        min-height: 36px;
+        padding: 0.3rem 0.5rem;
+    }
+
+    /* Ensure actions column is always visible and properly sized */
+    .table th:last-child,
+    .table td:last-child {
+        white-space: nowrap;
+        min-width: 55px;
+    }
     .empty-state { padding: 40px 20px; }
     .empty-state i { font-size: 2.8rem; }
 
@@ -838,6 +873,20 @@ body.error-body {
     .table td { font-size: 0.82rem; }
     .status-pill { font-size: 0.74rem; padding: 4px 10px; }
     .btn-xs { font-size: 0.74rem; }
+
+    /* Table action buttons - ensure visibility */
+    .table .btn-xs {
+        min-width: 34px;
+        min-height: 34px;
+        padding: 0.25rem 0.45rem;
+    }
+
+    /* Ensure actions column is always visible and properly sized */
+    .table th:last-child,
+    .table td:last-child {
+        white-space: nowrap;
+        min-width: 52px;
+    }
     .empty-state { padding: 36px 18px; }
     .empty-state i { font-size: 2.5rem; }
 
@@ -919,6 +968,21 @@ body.error-body {
     .table td { font-size: 0.8rem; }
     .status-pill { font-size: 0.72rem; padding: 4px 10px; }
     .btn-xs { font-size: 0.72rem; }
+
+    /* Table action buttons - ensure visibility */
+    .table .btn-xs {
+        min-width: 32px;
+        min-height: 32px;
+        padding: 0.25rem 0.4rem;
+    }
+
+    /* Ensure actions column is always visible and properly sized */
+    .table th:last-child,
+    .table td:last-child {
+        white-space: nowrap;
+        min-width: 50px;
+    }
+
     .empty-state { padding: 32px 16px; }
     .empty-state i { font-size: 2.3rem; }
 
@@ -1004,6 +1068,21 @@ body.error-body {
     .table td { font-size: 0.78rem; }
     .status-pill { font-size: 0.7rem; padding: 4px 10px; }
     .btn-xs { font-size: 0.7rem; }
+
+    /* Table action buttons - ensure visibility */
+    .table .btn-xs {
+        min-width: 30px;
+        min-height: 30px;
+        padding: 0.2rem 0.35rem;
+    }
+
+    /* Ensure actions column is always visible and properly sized */
+    .table th:last-child,
+    .table td:last-child {
+        white-space: nowrap;
+        min-width: 50px;
+    }
+
     .empty-state { padding: 30px 14px; }
     .empty-state i { font-size: 2.2rem; }
 
@@ -1070,14 +1149,11 @@ body.error-body {
     .camera-stage { min-height: 160px; }
     .camera-hint { font-size: 0.62rem; padding: 3px 6px; }
 
-    /* Hide non-essential table columns */
-    .table th:nth-child(5),
-    .table th:nth-child(6),
-    .table th:nth-child(7),
-    .table td:nth-child(5),
-    .table td:nth-child(6),
-    .table td:nth-child(7) {
-        display: none;
+    /* Ensure actions column (last column) is always visible */
+    .table th:last-child,
+    .table td:last-child {
+        white-space: nowrap;
+        min-width: 50px;
     }
 
     /* Error pages */
@@ -1099,6 +1175,20 @@ body.error-body {
     .table td { font-size: 0.76rem; }
     .status-pill { font-size: 0.68rem; padding: 4px 8px; }
     .btn-xs { font-size: 0.68rem; }
+
+    /* Table action buttons - ensure visibility */
+    .table .btn-xs {
+        min-width: 28px;
+        min-height: 28px;
+        padding: 0.2rem 0.3rem;
+    }
+
+    /* Ensure actions column is always visible and properly sized */
+    .table th:last-child,
+    .table td:last-child {
+        white-space: nowrap;
+        min-width: 48px;
+    }
     .empty-state { padding: 28px 12px; }
     .empty-state i { font-size: 2rem; }
 
@@ -1184,6 +1274,20 @@ body.error-body {
     .table td { font-size: 0.74rem; }
     .status-pill { font-size: 0.66rem; padding: 4px 8px; }
     .btn-xs { font-size: 0.66rem; }
+
+    /* Table action buttons - ensure visibility */
+    .table .btn-xs {
+        min-width: 26px;
+        min-height: 26px;
+        padding: 0.15rem 0.25rem;
+    }
+
+    /* Ensure actions column is always visible and properly sized */
+    .table th:last-child,
+    .table td:last-child {
+        white-space: nowrap;
+        min-width: 46px;
+    }
     .empty-state { padding: 24px 10px; }
     .empty-state i { font-size: 1.8rem; }
 
