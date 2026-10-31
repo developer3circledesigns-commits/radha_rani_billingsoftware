@@ -612,6 +612,9 @@ return [
         'upload.cash_bill'        => 'Cash Bill',
         'upload.card_bill'        => 'Card Bill',
         'upload.document_file'    => 'Bill Document',
+        'upload.file_name'        => 'File Name',
+        'upload.save_name'        => 'Save file name',
+        'upload.name_saved'       => 'Name saved',
         'upload.mode_help'        => 'Upload a PDF, or take a photo — photos are converted to PDF automatically.',
         'upload.take_photo'       => 'Take Photo',
         'upload.choose_gallery'   => 'Choose from Gallery',
@@ -626,6 +629,11 @@ return [
         'upload.camera_hint'      => 'Point the camera at the bill, then press Capture Photo.',
         'upload.camera_retry'     => 'Try Again',
         'upload.camera_use_file'  => 'Choose a File Instead',
+        'upload.crop_photo'       => 'Crop Photo',
+        'upload.crop_title'       => 'Crop Photo',
+        'upload.crop_hint'        => 'Drag the box or its handles to choose the area to keep.',
+        'upload.crop_reset'       => 'Reset',
+        'upload.crop_apply'       => 'Apply Crop',
 
         // ==============================================================
         // Form partials
@@ -767,6 +775,7 @@ return [
         'js.future_date'       => 'Business date cannot be in the future.',
         'js.choose_pdf'        => 'Please choose a PDF file or take a photo.',
         'js.choose_document'   => 'Please choose a PDF or take a photo.',
+        'js.name_required'     => 'Please enter a file name.',
         'js.uploading'         => 'Uploading…',
         'js.processing'        => 'Processing…',
         'js.upload_ok'         => 'Bill uploaded successfully.',
@@ -785,6 +794,7 @@ return [
         'js.camera_error'      => 'The camera could not be opened. Choose a file instead.',
         'js.camera_insecure'   => 'The camera needs a secure connection (HTTPS or localhost). Opening the file picker instead.',
         'js.camera_capture_failed' => 'The photo could not be captured. Please try again.',
+        'js.crop_failed'       => 'The photo could not be cropped. Please try again.',
         'js.upload_photo_ok'   => 'Photo saved as a PDF bill.',
         'js.server_too_large'  => 'The file is too large for the server. Please use a smaller photo.',
         'js.retrying_smaller'  => 'Retrying with a smaller copy…',

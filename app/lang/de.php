@@ -624,6 +624,9 @@ return [
         'upload.cash_bill'        => 'Barbeleg',
         'upload.card_bill'        => 'Kartenbeleg',
         'upload.document_file'    => 'Belegdokument',
+        'upload.file_name'        => 'Dateiname',
+        'upload.save_name'        => 'Dateinamen speichern',
+        'upload.name_saved'       => 'Name gespeichert',
         'upload.mode_help'        => 'Laden Sie ein PDF hoch oder nehmen Sie ein Foto auf – Fotos werden automatisch in PDF umgewandelt.',
         'upload.take_photo'       => 'Foto aufnehmen',
         'upload.choose_gallery'   => 'Aus Galerie wählen',
@@ -638,6 +641,11 @@ return [
         'upload.camera_hint'      => 'Richten Sie die Kamera auf den Beleg und tippen Sie auf „Foto aufnehmen“.',
         'upload.camera_retry'     => 'Erneut versuchen',
         'upload.camera_use_file'  => 'Datei auswählen',
+        'upload.crop_photo'       => 'Foto zuschneiden',
+        'upload.crop_title'       => 'Foto zuschneiden',
+        'upload.crop_hint'        => 'Ziehen Sie den Rahmen oder seine Griffe, um den gewünschten Bereich zu wählen.',
+        'upload.crop_reset'       => 'Zurücksetzen',
+        'upload.crop_apply'       => 'Zuschnitt anwenden',
 
         // ==============================================================
         // Formular-Partials
@@ -779,6 +787,7 @@ return [
         'js.future_date'       => 'Das Belegdatum darf nicht in der Zukunft liegen.',
         'js.choose_pdf'        => 'Bitte wählen Sie eine PDF-Datei aus oder nehmen Sie ein Foto auf.',
         'js.choose_document'   => 'Bitte wählen Sie ein PDF aus oder nehmen Sie ein Foto auf.',
+        'js.name_required'     => 'Bitte geben Sie einen Dateinamen ein.',
         'js.uploading'         => 'Wird hochgeladen…',
         'js.processing'        => 'Wird verarbeitet…',
         'js.upload_ok'         => 'Beleg wurde erfolgreich hochgeladen.',
@@ -797,6 +806,7 @@ return [
         'js.camera_error'      => 'Die Kamera konnte nicht geöffnet werden. Wählen Sie stattdessen eine Datei aus.',
         'js.camera_insecure'   => 'Die Kamera benötigt eine sichere Verbindung (HTTPS oder localhost). Die Dateiauswahl wird stattdessen geöffnet.',
         'js.camera_capture_failed' => 'Das Foto konnte nicht aufgenommen werden. Bitte erneut versuchen.',
+        'js.crop_failed'       => 'Das Foto konnte nicht zugeschnitten werden. Bitte erneut versuchen.',
         'js.upload_photo_ok'   => 'Foto als PDF-Beleg gespeichert.',
         'js.server_too_large'  => 'Die Datei ist zu groß für den Server. Bitte verwenden Sie ein kleineres Foto.',
         'js.retrying_smaller'  => 'Erneuter Versuch mit einer kleineren Kopie…',

@@ -38,6 +38,27 @@ function url(string $path = ''): string
     return BASE_URL . '/' . $path;
 }
 
+/**
+ * URL for a CSS/JS asset with a cache-busting stamp.
+ *
+ * The web server sends a long Expires header for static files, so without a
+ * changing query string a deployment can pair new HTML with week-old scripts.
+ * External URLs are returned untouched.
+ */
+function asset_url(string $path): string
+{
+    if (preg_match('#^(?:[a-z][a-z0-9+.-]*:)?//#i', $path) === 1) {
+        return $path;
+    }
+
+    $relative = ltrim($path, '/');
+    $file = PUBLIC_PATH . '/' . $relative;
+    $mtime = is_file($file) ? @filemtime($file) : false;
+    $version = $mtime !== false ? (string) $mtime : APP_VERSION;
+
+    return url($relative) . '?v=' . rawurlencode($version);
+}
+
 function redirect(string $path): void
 {
     header('Location: ' . url($path));
@@ -455,6 +476,54 @@ function sanitize_filename(string $name): string
     $name = preg_replace('/[^\w.()-]/u', '_', basename($name));
     $name = preg_replace('/_{2,}/', '_', $name);
     return trim($name, '_') ?: 'document';
+}
+
+/**
+ * Turn a user-supplied display name into a safe ".pdf" filename.
+ *
+ * The branch admin can rename a document before uploading it. This name is
+ * only used for display and as the download's suggested filename (that header
+ * still runs sanitize_filename() again), so unicode letters, digits, spaces
+ * and a small punctuation set are kept. Empty or unusable input falls back to
+ * the name the browser sent, which keeps uploads working when the field is
+ * absent.
+ */
+function normalize_pdf_filename(string $requested, string $fallback): string
+{
+    $requested = trim($requested);
+    // A display name longer than this is abuse rather than a real filename;
+    // rejecting it up front also keeps the regular expressions below cheap.
+    if ($requested === '' || strlen($requested) > 1024) {
+        return $fallback;
+    }
+
+    $requested = (string) preg_replace('/(?:\.pdf)+$/i', '', $requested);
+    $base = basename($requested);
+
+    $name = preg_replace('/[^\p{L}\p{N}._() -]+/u', '_', $base);
+    if ($name === null) {
+        // Invalid UTF-8: fall back to the ASCII-only rule used elsewhere.
+        $name = preg_replace('/[^\w.() -]+/', '_', $base);
+    }
+    $name = (string) preg_replace('/_{2,}/', '_', (string) $name);
+    $name = (string) preg_replace('/ {2,}/', ' ', $name);
+    $name = trim($name, " ._-");
+    if ($name === '') {
+        return $fallback;
+    }
+
+    // Count characters, not bytes: with /u, .{0,160} matches code points, so a
+    // multibyte name is never cut in the middle of a UTF-8 sequence even on a
+    // host without mbstring.
+    if (strlen($name) > 160) {
+        $name = (string) preg_replace('/^(.{0,160}).*$/us', '$1', $name);
+        $name = rtrim($name, " ._-");
+        if ($name === '') {
+            return $fallback;
+        }
+    }
+
+    return $name . '.pdf';
 }
 
 function secure_rand_hex(int $bytes = 16): string

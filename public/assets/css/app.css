@@ -489,6 +489,64 @@ body.app-body {
     object-fit: contain;
 }
 
+/* ---------- Crop editor ---------- */
+.crop-stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 240px;
+    padding: 18px;
+    background: #111;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+}
+.crop-image {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 60vh;
+    pointer-events: none;
+    -webkit-user-drag: none;
+}
+.crop-box {
+    display: none;
+    position: absolute;
+    box-sizing: border-box;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+    cursor: move;
+    touch-action: none;
+}
+.crop-box.is-ready { display: block; }
+.crop-box:focus-visible {
+    outline: 2px solid var(--rr-gold);
+    outline-offset: 2px;
+}
+.crop-handle {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.35);
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+.crop-handle-nw { top: -9px; left: -9px; cursor: nwse-resize; }
+.crop-handle-ne { top: -9px; right: -9px; cursor: nesw-resize; }
+.crop-handle-sw { bottom: -9px; left: -9px; cursor: nesw-resize; }
+.crop-handle-se { bottom: -9px; right: -9px; cursor: nwse-resize; }
+.crop-handle-n,
+.crop-handle-s { left: 50%; width: 28px; height: 12px; transform: translateX(-50%); cursor: ns-resize; }
+.crop-handle-n { top: -7px; }
+.crop-handle-s { bottom: -7px; }
+.crop-handle-w,
+.crop-handle-e { top: 50%; width: 12px; height: 28px; transform: translateY(-50%); cursor: ew-resize; }
+.crop-handle-w { left: -7px; }
+.crop-handle-e { right: -7px; }
+
 /* ---------- Live camera modal ---------- */
 .camera-stage {
     position: relative;

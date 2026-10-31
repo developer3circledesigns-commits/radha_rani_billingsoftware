@@ -10,8 +10,10 @@
     const fileInput     = document.getElementById('fileInput');
     const browseBtn     = document.getElementById('browseBtn');
     const filePreview   = document.getElementById('filePreview');
-    const filePreviewName  = document.getElementById('filePreviewName');
+    const filePreviewNameInput = document.getElementById('filePreviewNameInput');
     const filePreviewSize  = document.getElementById('filePreviewSize');
+    const fileRenameSaveBtn = document.getElementById('fileRenameSaveBtn');
+    const fileRenameSaved   = document.getElementById('fileRenameSaved');
     const fileRemoveBtn = document.getElementById('fileRemoveBtn');
 
     const takePhotoBtn  = document.getElementById('takePhotoBtn');
@@ -19,11 +21,22 @@
     const photoPreview  = document.getElementById('photoPreview');
     const photoPreviewImg   = document.getElementById('photoPreviewImg');
     const photoPreviewMeta  = document.getElementById('photoPreviewMeta');
+    const photoPreviewNameInput = document.getElementById('photoPreviewNameInput');
+    const photoRenameSaveBtn    = document.getElementById('photoRenameSaveBtn');
+    const photoRenameSaved      = document.getElementById('photoRenameSaved');
     const photoGalleryBtn   = document.getElementById('photoGalleryBtn');
     const photoRetakeBtn    = document.getElementById('photoRetakeBtn');
+    const photoCropBtn      = document.getElementById('photoCropBtn');
     const photoRemoveBtn    = document.getElementById('photoRemoveBtn');
     const photoCaptureInput = document.getElementById('photoCaptureInput');
     const photoGalleryInput = document.getElementById('photoGalleryInput');
+
+    const cropModalEl   = document.getElementById('cropModal');
+    const cropStage     = document.getElementById('cropStage');
+    const cropImage     = document.getElementById('cropImage');
+    const cropBox       = document.getElementById('cropBox');
+    const cropResetBtn  = document.getElementById('cropResetBtn');
+    const cropApplyBtn  = document.getElementById('cropApplyBtn');
 
     const cameraModalEl   = document.getElementById('cameraModal');
     const cameraVideo     = document.getElementById('cameraVideo');
@@ -72,12 +85,29 @@
     let busy = false;
     let autoRetryCount = 0;
 
+    // The name that will be saved for the document (without the ".pdf" suffix).
+    // It is committed by the rename controls and sent as document_name.
+    let docNameBase = '';
+
     let cameraModal = null;
     let cameraStream = null;
     let cameraDevices = [];
     let cameraActiveDeviceId = '';
     let cameraToken = 0;
     let cameraBusy = false;
+    let cameraVisible = false;
+    let pendingCropOpen = false;
+
+    let cropModal = null;
+    const crop = {
+        ready: false,
+        applying: false,
+        applySeq: 0,
+        imgX: 0, imgY: 0, imgW: 0, imgH: 0,
+        naturalW: 0, naturalH: 0,
+        box: { x: 0, y: 0, w: 0, h: 0 },
+        drag: null,
+    };
 
     // Use the exact effective limit the server computed (PHP upload/post limits,
     // database packet size and the configured setting all included). The MB
@@ -96,6 +126,95 @@
         photoPreview.classList.toggle('d-none', !hasPhoto);
     }
 
+    // ---------- document name ----------
+    // The branch admin can rename the document before saving it. The ".pdf"
+    // suffix is shown beside the field and added by the server, so the saved
+    // name always stays a PDF regardless of what is typed here.
+    function normalizeNameBase(value) {
+        return String(value == null ? '' : value)
+            .replace(/[\u0000-\u001f\u007f]/g, '')
+            .replace(/[^\p{L}\p{N}._() -]+/gu, '_')
+            .replace(/_{2,}/g, '_')
+            .replace(/\s+/g, ' ')
+            .replace(/^[ ._-]+|[ ._-]+$/g, '')
+            // Remove the suffix after trimming, so " bill.pdf " does not keep
+            // a second ".pdf" when the server adds it back.
+            .replace(/(?:\.pdf)+$/i, '')
+            .replace(/[ ._-]+$/g, '');
+    }
+
+    // Count code points instead of UTF-16 units so the browser and PHP agree
+    // on the 160-character limit even for rare astral letters.
+    function limitNameBase(value) {
+        return Array.from(String(value)).slice(0, 160).join('')
+            .replace(/^[ ._-]+|[ ._-]+$/g, '');
+    }
+
+    function defaultPdfName(file) {
+        return normalizeNameBase(file && file.name) || 'document';
+    }
+
+    function defaultPhotoName(file) {
+        // Keep the existing photo naming when possible; the browser has
+        // already normalised the capture to "photo_<timestamp>.jpg".
+        const base = normalizeNameBase(file && String(file.name || '').replace(/\.[a-z0-9]+$/i, ''));
+        if (base) return base;
+
+        const d = new Date();
+        const pad = function (n) { return String(n).padStart(2, '0'); };
+        return 'Photo_' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate())
+            + '_' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+    }
+
+    function syncDocNameInputs() {
+        if (filePreviewNameInput) filePreviewNameInput.value = docNameBase;
+        if (photoPreviewNameInput) photoPreviewNameInput.value = docNameBase;
+    }
+
+    function setDocNameBase(base) {
+        docNameBase = limitNameBase(normalizeNameBase(base));
+        syncDocNameInputs();
+        if (fileRenameSaved) fileRenameSaved.classList.add('d-none');
+        if (photoRenameSaved) photoRenameSaved.classList.add('d-none');
+    }
+
+    const nameSavedTimers = new WeakMap();
+    function flashNameSaved(el) {
+        if (!el) return;
+        el.classList.remove('d-none');
+        const previous = nameSavedTimers.get(el);
+        if (previous) clearTimeout(previous);
+        nameSavedTimers.set(el, setTimeout(function () {
+            el.classList.add('d-none');
+            nameSavedTimers.delete(el);
+        }, 1800));
+    }
+
+    function commitDocName(input, savedEl) {
+        if (!input) return true;
+        const base = limitNameBase(normalizeNameBase(input.value));
+        if (!base) {
+            setFileError(txt('js.name_required', 'Please enter a file name.'));
+            input.value = docNameBase;
+            input.focus();
+            return false;
+        }
+        clearFileError();
+        docNameBase = base;
+        syncDocNameInputs();
+        flashNameSaved(savedEl);
+        return true;
+    }
+
+    function autoCommitDocName(input, savedEl) {
+        if (!input) return;
+        const base = limitNameBase(normalizeNameBase(input.value));
+        if (!base || base === docNameBase) return;
+        docNameBase = base;
+        syncDocNameInputs();
+        flashNameSaved(savedEl);
+    }
+
     function resetPhotoState() {
         if (photoUrl) {
             URL.revokeObjectURL(photoUrl);
@@ -109,7 +228,10 @@
     }
 
     function clearPhotoSelection() {
+        hideCropEditor();
         resetPhotoState();
+        if (photoRenameSaved) photoRenameSaved.classList.add('d-none');
+        setDocNameBase('');
         refreshDocumentView();
     }
 
@@ -117,14 +239,17 @@
         selectedFile = null;
         fileInput.value = '';
         filePreview.classList.add('d-none');
+        if (fileRenameSaved) fileRenameSaved.classList.add('d-none');
     }
 
     function clearFileSelection() {
         clearPdfSelection();
+        setDocNameBase('');
         refreshDocumentView();
     }
 
     function showPhoto(jpegFile) {
+        const isNewSelection = !selectedPhoto;
         clearPdfSelection();
         selectedPhoto = jpegFile;
         if (photoUrl) URL.revokeObjectURL(photoUrl);
@@ -132,6 +257,8 @@
         photoPreviewImg.src = photoUrl;
         photoPreviewMeta.textContent = formatSize(jpegFile.size) + ' · ' +
             txt('js.photo_ready', 'Photo ready — it will be saved as a PDF bill.');
+        // A retry with a smaller copy keeps the name the user already chose.
+        if (isNewSelection || !docNameBase) setDocNameBase(defaultPhotoName(jpegFile));
         refreshDocumentView();
         clearFileError();
     }
@@ -176,6 +303,39 @@
         clearFileError();
     });
 
+    if (fileRenameSaveBtn) {
+        fileRenameSaveBtn.addEventListener('click', function () {
+            commitDocName(filePreviewNameInput, fileRenameSaved);
+        });
+    }
+    if (filePreviewNameInput) {
+        filePreviewNameInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                commitDocName(filePreviewNameInput, fileRenameSaved);
+            }
+        });
+        filePreviewNameInput.addEventListener('blur', function () {
+            autoCommitDocName(filePreviewNameInput, fileRenameSaved);
+        });
+    }
+    if (photoRenameSaveBtn) {
+        photoRenameSaveBtn.addEventListener('click', function () {
+            commitDocName(photoPreviewNameInput, photoRenameSaved);
+        });
+    }
+    if (photoPreviewNameInput) {
+        photoPreviewNameInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                commitDocName(photoPreviewNameInput, photoRenameSaved);
+            }
+        });
+        photoPreviewNameInput.addEventListener('blur', function () {
+            autoCommitDocName(photoPreviewNameInput, photoRenameSaved);
+        });
+    }
+
     function onFileSelected(file) {
         const ext = (file.name.split('.').pop() || '').toLowerCase();
 
@@ -197,7 +357,7 @@
 
         resetPhotoState();
         selectedFile = file;
-        filePreviewName.textContent = file.name;
+        setDocNameBase(defaultPdfName(file));
         filePreviewSize.textContent = formatSize(file.size);
         refreshDocumentView();
         clearFileError();
@@ -216,6 +376,62 @@
     if (photoRetakeBtn) {
         photoRetakeBtn.addEventListener('click', openDeviceCamera);
     }
+    if (photoCropBtn) {
+        photoCropBtn.addEventListener('click', openCropEditor);
+    }
+    if (cropResetBtn) {
+        cropResetBtn.addEventListener('click', resetCropBox);
+    }
+    if (cropApplyBtn) {
+        cropApplyBtn.addEventListener('click', applyCrop);
+    }
+    if (cropBox) {
+        cropBox.addEventListener('pointerdown', onCropPointerDown);
+        cropBox.addEventListener('pointermove', onCropPointerMove);
+        cropBox.addEventListener('pointerup', endCropDrag);
+        cropBox.addEventListener('pointercancel', endCropDrag);
+        cropBox.addEventListener('lostpointercapture', endCropDrag);
+        cropBox.addEventListener('keydown', function (e) {
+            const step = e.shiftKey ? 10 : 2;
+            let dx = 0;
+            let dy = 0;
+            if (e.key === 'ArrowLeft') dx = -step;
+            else if (e.key === 'ArrowRight') dx = step;
+            else if (e.key === 'ArrowUp') dy = -step;
+            else if (e.key === 'ArrowDown') dy = step;
+            else return;
+            e.preventDefault();
+            nudgeCropBox(dx, dy);
+        });
+    }
+    if (cropImage) {
+        cropImage.addEventListener('error', function () {
+            if (cropModalEl && cropModalEl.classList.contains('show')) {
+                toast(txt('js.crop_failed', 'The photo could not be cropped. Please try again.'), 'danger');
+            }
+        });
+    }
+    if (cropModalEl) {
+        cropModalEl.addEventListener('shown.bs.modal', prepareCropEditor);
+        // Fires as soon as the dialog starts closing. A pending canvas.toBlob()
+        // checks this flag so Cancel/X really aborts an in-flight crop.
+        cropModalEl.addEventListener('hide.bs.modal', function () {
+            crop.applying = false;
+            crop.applySeq++;
+        });
+        cropModalEl.addEventListener('hidden.bs.modal', function () {
+            endCropDrag();
+            crop.ready = false;
+            crop.applying = false;
+            if (cropBox) cropBox.classList.remove('is-ready');
+        });
+    }
+    window.addEventListener('resize', function () {
+        if (cropModalEl && cropModalEl.classList.contains('show')) {
+            endCropDrag();
+            layoutCropBox();
+        }
+    });
     if (galleryBtn) {
         galleryBtn.addEventListener('click', function () { photoGalleryInput.click(); });
     }
@@ -236,12 +452,24 @@
     }
     if (photoCaptureInput) {
         photoCaptureInput.addEventListener('change', function () {
-            if (photoCaptureInput.files.length) acceptPhotoFile(photoCaptureInput.files[0]);
+            if (photoCaptureInput.files.length) {
+                acceptPhotoFile(photoCaptureInput.files[0], { autoCrop: true });
+            }
             photoCaptureInput.value = '';
         });
     }
     if (cameraModalEl) {
-        cameraModalEl.addEventListener('hidden.bs.modal', stopCamera);
+        cameraModalEl.addEventListener('shown.bs.modal', function () {
+            cameraVisible = true;
+        });
+        cameraModalEl.addEventListener('hidden.bs.modal', function () {
+            cameraVisible = false;
+            stopCamera();
+            if (pendingCropOpen) {
+                pendingCropOpen = false;
+                openCropEditor();
+            }
+        });
     }
     if (cameraCaptureBtn) {
         cameraCaptureBtn.addEventListener('click', captureCameraPhoto);
@@ -285,6 +513,9 @@
         if (!cameraModal) cameraModal = new window.bootstrap.Modal(cameraModalEl);
         showCameraStatus(txt('js.camera_starting', 'Starting camera…'), { spinner: true });
         if (cameraCaptureBtn) cameraCaptureBtn.disabled = true;
+        // Mark visible before show(); a capture can happen before the fade-in
+        // finishes, and the crop editor must still queue behind the camera.
+        cameraVisible = true;
         cameraModal.show();
         startCamera('');
     }
@@ -412,7 +643,7 @@
             const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
             const file = new File([blob], 'camera_' + stamp + '.jpg', { type: 'image/jpeg' });
             closeCamera();
-            acceptPhotoFile(file);
+            acceptPhotoFile(file, { autoCrop: true });
         }, 'image/jpeg', 0.92);
     }
 
@@ -455,8 +686,232 @@
         if (cameraStatus) cameraStatus.classList.add('d-none');
     }
 
+    // ---------- crop ----------
+    // A dependency-free crop editor: the image keeps its aspect ratio, and the
+    // box is positioned in stage coordinates so the same math works on a
+    // phone, tablet or laptop. Applying maps the box back to the image's
+    // natural pixels and re-runs the normal upload preparation.
+    function cropSupported() {
+        return !!(cropModalEl && cropStage && cropImage && cropBox &&
+            window.bootstrap && typeof window.bootstrap.Modal === 'function');
+    }
+
+    function ensureCropModal() {
+        if (!cropModal && cropSupported()) cropModal = new window.bootstrap.Modal(cropModalEl);
+        return cropModal;
+    }
+
+    function openCropEditor() {
+        if (!selectedPhoto || !photoUrl) return;
+        const modal = ensureCropModal();
+        if (!modal) return;
+        crop.ready = false;
+        crop.applying = false;
+        crop.applySeq++;
+        if (cropBox) cropBox.classList.remove('is-ready');
+        if (cropApplyBtn) cropApplyBtn.disabled = true;
+        if (cropImage) cropImage.src = photoUrl;
+        modal.show();
+    }
+
+    function hideCropEditor() {
+        endCropDrag();
+        crop.ready = false;
+        crop.applying = false;
+        if (cropModal) cropModal.hide();
+    }
+
+    // Wait for the camera modal to finish closing before opening the crop
+    // editor; stacking two Bootstrap modals leaves the backdrop stuck open.
+    // cameraVisible stays true until the camera's hidden event fires, so a
+    // slow photo preparation and a fast one both end up in the same place.
+    function openCropAfterCamera() {
+        if (cameraVisible) {
+            pendingCropOpen = true;
+            return;
+        }
+        openCropEditor();
+    }
+
+    function prepareCropEditor() {
+        if (!cropImage) return;
+        const layout = function () {
+            if (cropModalEl && cropModalEl.classList.contains('show')) layoutCropBox();
+        };
+        if (cropImage.complete && cropImage.naturalWidth) {
+            layout();
+        } else {
+            cropImage.addEventListener('load', layout, { once: true });
+        }
+        window.requestAnimationFrame(layout);
+    }
+
+    function layoutCropBox() {
+        if (!cropStage || !cropImage || !cropBox) return;
+        const stageRect = cropStage.getBoundingClientRect();
+        const imgRect = cropImage.getBoundingClientRect();
+        if (!imgRect.width || !imgRect.height) return;
+        crop.imgX = imgRect.left - stageRect.left;
+        crop.imgY = imgRect.top - stageRect.top;
+        crop.imgW = imgRect.width;
+        crop.imgH = imgRect.height;
+        crop.naturalW = cropImage.naturalWidth || 0;
+        crop.naturalH = cropImage.naturalHeight || 0;
+        crop.ready = crop.naturalW > 0 && crop.naturalH > 0;
+        resetCropBox();
+        if (crop.ready && cropBox) cropBox.classList.add('is-ready');
+        if (cropApplyBtn && !crop.applying) cropApplyBtn.disabled = !crop.ready;
+    }
+
+    function resetCropBox() {
+        crop.box = {
+            x: crop.imgX,
+            y: crop.imgY,
+            w: Math.max(1, crop.imgW),
+            h: Math.max(1, crop.imgH),
+        };
+        applyCropBoxStyle();
+    }
+
+    function applyCropBoxStyle() {
+        if (!cropBox) return;
+        cropBox.style.left = crop.box.x + 'px';
+        cropBox.style.top = crop.box.y + 'px';
+        cropBox.style.width = crop.box.w + 'px';
+        cropBox.style.height = crop.box.h + 'px';
+    }
+
+    function onCropPointerDown(e) {
+        if (!crop.ready) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        const handleEl = e.target && e.target.closest ? e.target.closest('.crop-handle') : null;
+        crop.drag = {
+            mode: handleEl ? (handleEl.getAttribute('data-handle') || 'move') : 'move',
+            pointerId: e.pointerId,
+            startX: e.clientX,
+            startY: e.clientY,
+            start: { x: crop.box.x, y: crop.box.y, w: crop.box.w, h: crop.box.h },
+        };
+        try { cropBox.setPointerCapture(e.pointerId); } catch (err) {}
+        e.preventDefault();
+    }
+
+    function onCropPointerMove(e) {
+        if (!crop.drag || e.pointerId !== crop.drag.pointerId) return;
+        const drag = crop.drag;
+        const dx = e.clientX - drag.startX;
+        const dy = e.clientY - drag.startY;
+        const minW = Math.min(60, crop.imgW);
+        const minH = Math.min(60, crop.imgH);
+
+        if (drag.mode === 'move') {
+            crop.box = {
+                x: Math.min(Math.max(drag.start.x + dx, crop.imgX), crop.imgX + crop.imgW - drag.start.w),
+                y: Math.min(Math.max(drag.start.y + dy, crop.imgY), crop.imgY + crop.imgH - drag.start.h),
+                w: drag.start.w,
+                h: drag.start.h,
+            };
+        } else {
+            let left = drag.start.x;
+            let top = drag.start.y;
+            let right = drag.start.x + drag.start.w;
+            let bottom = drag.start.y + drag.start.h;
+
+            if (drag.mode.indexOf('w') !== -1) {
+                left = Math.min(Math.max(drag.start.x + dx, crop.imgX), right - minW);
+            }
+            if (drag.mode.indexOf('e') !== -1) {
+                right = Math.max(Math.min(drag.start.x + drag.start.w + dx, crop.imgX + crop.imgW), left + minW);
+            }
+            if (drag.mode.indexOf('n') !== -1) {
+                top = Math.min(Math.max(drag.start.y + dy, crop.imgY), bottom - minH);
+            }
+            if (drag.mode.indexOf('s') !== -1) {
+                bottom = Math.max(Math.min(drag.start.y + drag.start.h + dy, crop.imgY + crop.imgH), top + minH);
+            }
+            crop.box = { x: left, y: top, w: right - left, h: bottom - top };
+        }
+        applyCropBoxStyle();
+        e.preventDefault();
+    }
+
+    function endCropDrag(e) {
+        if (!crop.drag) return;
+        if (cropBox && e && e.pointerId != null) {
+            try { cropBox.releasePointerCapture(e.pointerId); } catch (err) {}
+        }
+        crop.drag = null;
+    }
+
+    function nudgeCropBox(dx, dy) {
+        if (!crop.ready) return;
+        crop.box.x = Math.min(Math.max(crop.box.x + dx, crop.imgX), crop.imgX + crop.imgW - crop.box.w);
+        crop.box.y = Math.min(Math.max(crop.box.y + dy, crop.imgY), crop.imgY + crop.imgH - crop.box.h);
+        applyCropBoxStyle();
+    }
+
+    function applyCrop() {
+        if (crop.applying || !crop.ready || !selectedPhoto || !cropImage || !crop.naturalW || !crop.naturalH) return;
+        const sourcePhoto = selectedPhoto;
+        const seq = ++crop.applySeq;
+        crop.applying = true;
+        if (cropApplyBtn) cropApplyBtn.disabled = true;
+
+        const scaleX = crop.naturalW / crop.imgW;
+        const scaleY = crop.naturalH / crop.imgH;
+        let sx = Math.round((crop.box.x - crop.imgX) * scaleX);
+        let sy = Math.round((crop.box.y - crop.imgY) * scaleY);
+        let sw = Math.round(crop.box.w * scaleX);
+        let sh = Math.round(crop.box.h * scaleY);
+
+        sx = Math.max(0, Math.min(sx, crop.naturalW - 1));
+        sy = Math.max(0, Math.min(sy, crop.naturalH - 1));
+        sw = Math.max(1, Math.min(sw, crop.naturalW - sx));
+        sh = Math.max(1, Math.min(sh, crop.naturalH - sy));
+
+        // The whole image is selected: keep the existing file untouched.
+        if (sx <= 1 && sy <= 1 && sw >= crop.naturalW - 1 && sh >= crop.naturalH - 1) {
+            hideCropEditor();
+            return;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = sw;
+        canvas.height = sh;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            crop.applying = false;
+            if (cropApplyBtn) cropApplyBtn.disabled = !crop.ready;
+            toast(txt('js.crop_failed', 'The photo could not be cropped. Please try again.'), 'danger');
+            return;
+        }
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, sw, sh);
+        ctx.drawImage(cropImage, sx, sy, sw, sh, 0, 0, sw, sh);
+
+        canvas.toBlob(function (blob) {
+            // The dialog was cancelled/reopened (or the photo changed) while
+            // the browser was still encoding; do not apply a stale crop.
+            if (seq !== crop.applySeq || !crop.applying || selectedPhoto !== sourcePhoto) return;
+            if (!blob) {
+                crop.applying = false;
+                if (cropApplyBtn) cropApplyBtn.disabled = !crop.ready;
+                toast(txt('js.crop_failed', 'The photo could not be cropped. Please try again.'), 'danger');
+                return;
+            }
+            const base = (sourcePhoto && sourcePhoto.name ? sourcePhoto.name : 'photo.jpg')
+                .replace(/\.[a-z0-9]+$/i, '');
+            const cropped = new File([blob], base + '_crop.jpg', { type: 'image/jpeg' });
+            hideCropEditor();
+            // acceptPhotoFile re-checks the size and keeps the chosen name,
+            // because a photo is already selected when showPhoto() runs.
+            acceptPhotoFile(cropped);
+        }, 'image/jpeg', 0.92);
+    }
+
     // ---------- photo normalisation ----------
-    async function acceptPhotoFile(file) {
+    async function acceptPhotoFile(file, options) {
+        options = options || {};
         clearFileError();
         autoRetryCount = 0;
 
@@ -482,9 +937,13 @@
         setPhotoControls(false);
         photoPreviewMeta.textContent = txt('js.photo_processing', 'Preparing photo…');
 
+        let openCropAfter = false;
         try {
             const jpeg = await normalizePhoto(file);
             showPhoto(jpeg);
+            // A fresh camera capture opens the crop editor once the capture
+            // has been prepared; gallery/drop selections only get the button.
+            openCropAfter = !!options.autoCrop;
         } catch (err) {
             photoPreviewMeta.textContent = previousMeta;
             if (err && err.message === 'too-large') {
@@ -499,11 +958,13 @@
                 photoPreviewMeta.textContent = '';
                 refreshDocumentView();
             }
+            if (openCropAfter) openCropAfterCamera();
         }
     }
 
     function setPhotoControls(enabled) {
-        [takePhotoBtn, galleryBtn, photoGalleryBtn, photoRetakeBtn, photoRemoveBtn].forEach(function (el) {
+        [takePhotoBtn, galleryBtn, photoGalleryBtn, photoRetakeBtn, photoCropBtn,
+            photoRemoveBtn, photoPreviewNameInput, photoRenameSaveBtn].forEach(function (el) {
             if (el) el.disabled = !enabled;
         });
         uploadBtn.disabled = !enabled || busy;
@@ -641,6 +1102,18 @@
 
         if (!valid) return;
 
+        // Pick up a name that is typed but not explicitly saved yet: pressing
+        // Upload should never lose a rename the user just made.
+        const activeNameInput = selectedFile
+            ? filePreviewNameInput
+            : (selectedPhoto ? photoPreviewNameInput : null);
+        if (activeNameInput) {
+            const typedBase = limitNameBase(normalizeNameBase(activeNameInput.value));
+            docNameBase = typedBase
+                || (selectedFile ? defaultPdfName(selectedFile) : defaultPhotoName(selectedPhoto));
+            syncDocNameInputs();
+        }
+
         busy = true;
         uploadBtn.disabled = true;
         formWrap.classList.add('d-none');
@@ -650,6 +1123,7 @@
         progressPct.textContent = '0%';
 
         const fd = new FormData(form);
+        fd.set('document_name', docNameBase);
         if (selectedPhoto) {
             fd.delete('pdf_file');
             fd.set('upload_mode', 'photo');

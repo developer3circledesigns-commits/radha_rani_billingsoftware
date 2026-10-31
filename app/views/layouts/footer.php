@@ -44,9 +44,9 @@
     // element, since app/lang/*.php is editable on shared hosting.
     window.APP.i18n = <?= json_encode(client_i18n_strings(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 </script>
-<script src="<?= url('assets/js/app.js') ?>"></script>
+<script src="<?= asset_url('assets/js/app.js') ?>"></script>
 <?php if (!empty($extraScripts)) : foreach ($extraScripts as $s) : ?>
-<script src="<?= url($s) ?>"></script>
+<script src="<?= asset_url($s) ?>"></script>
 <?php endforeach; endif; ?>
 </body>
 </html>

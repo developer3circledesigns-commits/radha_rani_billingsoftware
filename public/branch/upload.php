@@ -93,11 +93,21 @@ ob_start();
                                 </div>
                                 <input type="file" id="fileInput" name="pdf_file" accept=".pdf,application/pdf" class="d-none">
                                 <div class="dz-preview d-none" id="filePreview">
-                                    <div class="d-flex align-items-center gap-3 p-3">
+                                    <?php /* Keeps browsers that cached the previous upload.js from hitting a null element; it is never displayed. */ ?>
+                                    <span class="d-none" id="filePreviewName" aria-hidden="true"></span>
+                                    <div class="d-flex align-items-start gap-3 p-3">
                                         <i class="bi bi-file-earmark-pdf-fill text-danger fs-2"></i>
-                                        <div class="flex-grow-1">
-                                            <div class="fw-semibold text-truncate" id="filePreviewName">file.pdf</div>
-                                            <div class="small text-muted" id="filePreviewSize">0 KB</div>
+                                        <div class="flex-grow-1" style="min-width:0">
+                                            <label class="form-label small text-muted mb-1" for="filePreviewNameInput"><?= e(t('upload.file_name')) ?></label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="text" class="form-control" id="filePreviewNameInput" maxlength="160" autocomplete="off" spellcheck="false">
+                                                <span class="input-group-text">.pdf</span>
+                                                <button type="button" class="btn btn-outline-primary" id="fileRenameSaveBtn" title="<?= e(t('upload.save_name')) ?>" aria-label="<?= e(t('upload.save_name')) ?>"><i class="bi bi-check-lg"></i></button>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2 mt-1">
+                                                <div class="small text-muted" id="filePreviewSize">0 KB</div>
+                                                <div class="small text-success d-none" id="fileRenameSaved" role="status" aria-live="polite"><?= e(t('upload.name_saved')) ?></div>
+                                            </div>
                                         </div>
                                          <button type="button" class="btn btn-xs btn-light" id="fileRemoveBtn" title="<?= e(t('common.remove_file')) ?>" aria-label="<?= e(t('common.remove_file')) ?>"><i class="bi bi-x-lg"></i></button>
                                     </div>
@@ -105,6 +115,15 @@ ob_start();
                                 <div class="photo-preview d-none" id="photoPreview">
                                     <div class="photo-preview-media">
                                         <img id="photoPreviewImg" alt="<?= e(t('upload.photo_preview')) ?>">
+                                    </div>
+                                    <div class="p-3 pb-0">
+                                        <label class="form-label small text-muted mb-1" for="photoPreviewNameInput"><?= e(t('upload.file_name')) ?></label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" class="form-control" id="photoPreviewNameInput" maxlength="160" autocomplete="off" spellcheck="false">
+                                            <span class="input-group-text">.pdf</span>
+                                            <button type="button" class="btn btn-outline-primary" id="photoRenameSaveBtn" title="<?= e(t('upload.save_name')) ?>" aria-label="<?= e(t('upload.save_name')) ?>"><i class="bi bi-check-lg"></i></button>
+                                        </div>
+                                        <div class="small text-success mt-1 d-none" id="photoRenameSaved" role="status" aria-live="polite"><?= e(t('upload.name_saved')) ?></div>
                                     </div>
                                     <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap p-3 border-top">
                                         <div class="small">
@@ -114,6 +133,7 @@ ob_start();
                                         <div class="d-flex align-items-center gap-2 flex-wrap">
                                             <button type="button" class="btn btn-xs btn-light" id="photoGalleryBtn"><i class="bi bi-images me-1"></i><?= e(t('upload.choose_gallery')) ?></button>
                                             <button type="button" class="btn btn-xs btn-outline-primary" id="photoRetakeBtn"><i class="bi bi-camera me-1"></i><?= e(t('upload.retake')) ?></button>
+                                            <button type="button" class="btn btn-xs btn-outline-secondary" id="photoCropBtn"><i class="bi bi-crop me-1"></i><?= e(t('upload.crop_photo')) ?></button>
                                             <button type="button" class="btn btn-xs btn-light" id="photoRemoveBtn" title="<?= e(t('upload.remove_photo')) ?>" aria-label="<?= e(t('upload.remove_photo')) ?>"><i class="bi bi-x-lg"></i></button>
                                         </div>
                                     </div>
@@ -224,6 +244,41 @@ ob_start();
                 <button type="button" class="btn btn-outline-secondary me-auto d-none" id="cameraSwitchBtn"><i class="bi bi-arrow-repeat me-1"></i><?= e(t('upload.camera_switch')) ?></button>
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal"><?= e(t('common.cancel')) ?></button>
                 <button type="button" class="btn btn-primary" id="cameraCaptureBtn" disabled><i class="bi bi-camera me-1"></i><?= e(t('upload.camera_capture')) ?></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Crop editor shown after a camera capture (and from the Crop Photo button).
+     The white boundary is a real crop box: drag the middle to move it, drag a
+     handle to resize. Applying re-encodes only the selected area. -->
+<div class="modal fade" id="cropModal" tabindex="-1" aria-labelledby="cropModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cropModalTitle"><i class="bi bi-crop me-2"></i><?= e(t('upload.crop_title')) ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= e(t('common.close')) ?>"></button>
+            </div>
+            <div class="modal-body p-2">
+                <div class="crop-stage" id="cropStage">
+                    <img id="cropImage" class="crop-image" alt="<?= e(t('upload.crop_title')) ?>">
+                    <div class="crop-box" id="cropBox" tabindex="0" role="group" aria-label="<?= e(t('upload.crop_title')) ?>">
+                        <span class="crop-handle crop-handle-nw" data-handle="nw"></span>
+                        <span class="crop-handle crop-handle-n" data-handle="n"></span>
+                        <span class="crop-handle crop-handle-ne" data-handle="ne"></span>
+                        <span class="crop-handle crop-handle-e" data-handle="e"></span>
+                        <span class="crop-handle crop-handle-se" data-handle="se"></span>
+                        <span class="crop-handle crop-handle-s" data-handle="s"></span>
+                        <span class="crop-handle crop-handle-sw" data-handle="sw"></span>
+                        <span class="crop-handle crop-handle-w" data-handle="w"></span>
+                    </div>
+                </div>
+                <p class="text-muted small mb-0 mt-2"><?= e(t('upload.crop_hint')) ?></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light me-auto" id="cropResetBtn"><i class="bi bi-arrow-counterclockwise me-1"></i><?= e(t('upload.crop_reset')) ?></button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= e(t('common.cancel')) ?></button>
+                <button type="button" class="btn btn-primary" id="cropApplyBtn"><i class="bi bi-check2 me-1"></i><?= e(t('upload.crop_apply')) ?></button>
             </div>
         </div>
     </div>

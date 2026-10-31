@@ -87,6 +87,12 @@ if ($contentLength > 0 && $postMax > 0 && $contentLength > $postMax) {
 $paymentType = $_POST['payment_type'] ?? '';
 $businessDate = $_POST['business_date'] ?? '';
 $description = trim((string) ($_POST['description'] ?? ''));
+// Optional display name chosen on the upload page. It never replaces the
+// upload's own name for validation; it only becomes the saved filename.
+// is_string() keeps a crafted non-scalar POST value from turning into "Array".
+$requestedName = isset($_POST['document_name']) && is_string($_POST['document_name'])
+    ? trim($_POST['document_name'])
+    : '';
 
 if (!in_array($paymentType, ['cash', 'card'], true)) {
     api_error(t('api.select_payment_type'), 422, ['payment_type' => t('api.select_cash_or_card')]);
@@ -174,7 +180,7 @@ if ($uploadSource === 'photo') {
     if (!str_starts_with(strtolower($base), 'photo')) {
         $base = 'Photo_' . $base;
     }
-    $origName = substr($base, 0, 180) . '.pdf';
+    $origName = normalize_pdf_filename($requestedName, substr($base, 0, 180) . '.pdf');
 
     try {
         $bytes = BillPhotoPdf::fromJpeg($jpeg, ['title' => $origName]);
@@ -222,6 +228,8 @@ if ($uploadSource === 'photo') {
     if ((int) $file['size'] > $maxSize) {
         api_error(t('api.file_too_large', ['size' => format_bytes($maxSize)]), 422, [$fileField => t('api.file_exceeds_limit')]);
     }
+
+    $origName = normalize_pdf_filename($requestedName, $origName);
 }
 
 // ---- Move & store ----
